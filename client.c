@@ -9,7 +9,7 @@
 #define MAX_HOSTNAME 1024
 
 int sockfd;
-void handler(int signalNum);
+void int_handler(int signalNum);
 
 int main (int argc, char *argv[])
 {
@@ -34,7 +34,7 @@ int main (int argc, char *argv[])
             }
         }
         fclose(fp);
-    // Value passed from command line
+    // Values passed from command line
     }else if (argc == 3){
         strcpy(HOSTNAME, argv[1]);
         PORT = atoi(argv[2]);
@@ -56,7 +56,7 @@ int main (int argc, char *argv[])
         printf("IP address: %s\n", SERVER_ADDR);
         printf("Port: %d\n", PORT);
     }else if (argc == 2){
-        printf("Error too few arguments, insert port\n");
+        printf("Error too few arguments entered\n");
         exit(EXIT_FAILURE);
     }else{
         printf("Error too many arguments entered\n");
@@ -89,21 +89,20 @@ int main (int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     // Register a signal SIGINT (CTRL+c when pressed on cmd)
-    signal(SIGINT, handler);
+    signal(SIGINT, int_handler);
 
     // While loop until read EOF on stdin
-    char stringToSend[2048];
-    int value;
+    char data[2048];
     while (!feof(stdin)) {
         printf("Insert data to send to server (press ctrl+d to quit): ");
-        fgets(stringToSend, sizeof(stringToSend), stdin);
-        if ((value = send(sockfd,stringToSend,strlen(stringToSend),0)) == -1){
+        fgets(data, sizeof(data), stdin);
+        if (send(sockfd,data,strlen(data),0) == -1){
             printf("Error to send data\n");
             shutdown(sockfd,SHUT_WR); 
             close(sockfd);
             exit(EXIT_FAILURE);
         }
-        strcpy(stringToSend, "");
+        strcpy(data, "");
     }
     printf("\nShutdown and close socket...\n");
     shutdown(sockfd,SHUT_WR); 
@@ -111,8 +110,8 @@ int main (int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-
-void handler(int signalNum){
+// Handler for SIGINT signal
+void int_handler(int signo){
     printf("\nSIGINT signal received, shutdown and close socket\n");
     shutdown(sockfd,SHUT_WR); 
     close(sockfd); 
