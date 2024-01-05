@@ -6,6 +6,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <signal.h>
+#include <time.h>
 #define MAX_HOSTNAME 1024
 
 int sockfd;
@@ -75,7 +76,7 @@ int main (int argc, char *argv[])
     // Setup some options for current socket, SO_REUSEADDR is an option that permit to reuse immediately a local address, although it is still used by another socket
     if ((setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR,(char *)&opt, sizeof(opt))) == -1){
         printf("Error to setup options to socket\n");
-        shutdown(sockfd,SHUT_WR); 
+        shutdown(sockfd,SHUT_RDWR); 
         close(sockfd);
         exit(EXIT_FAILURE);
     }
@@ -84,28 +85,36 @@ int main (int argc, char *argv[])
     // Connect client to server
     if ((status = connect(sockfd, (struct sockaddr*)&server, sizeof(server))) < 0) {
         printf("Connection Failed \n");
-        shutdown(sockfd,SHUT_WR); 
+        shutdown(sockfd,SHUT_RDWR); 
         close(sockfd);
         exit(EXIT_FAILURE);
     }
+    // Get current time
+    time_t currentTime;
+    time(&currentTime);
+    // Convert time to string representation
+    char *timeString = ctime(&currentTime);
+    printf("------------------------------------------------------------\n");
+    printf("Successfully connected to server at %s",timeString);
+    printf("------------------------------------------------------------\n");
     // Register a signal SIGINT (CTRL+c when pressed on cmd)
     signal(SIGINT, int_handler);
 
     // While loop until read EOF on stdin
     char data[2048];
     while (!feof(stdin)) {
-        printf("Insert data to send to server (press ctrl+d to quit): ");
+        printf("Send some data (press ctrl+d to quit): ");
         fgets(data, sizeof(data), stdin);
         if (send(sockfd,data,strlen(data),0) == -1){
             printf("Error to send data\n");
-            shutdown(sockfd,SHUT_WR); 
+            shutdown(sockfd,SHUT_RDWR); 
             close(sockfd);
             exit(EXIT_FAILURE);
         }
         strcpy(data, "");
     }
     printf("\nShutdown and close socket...\n");
-    shutdown(sockfd,SHUT_WR); 
+    shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 
     exit(EXIT_SUCCESS);
 }
@@ -113,7 +122,7 @@ int main (int argc, char *argv[])
 // Handler for SIGINT signal
 void int_handler(int signo){
     printf("\nSIGINT signal received, shutdown and close socket\n");
-    shutdown(sockfd,SHUT_WR); 
+    shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 
     exit(EXIT_SUCCESS);
 }
