@@ -9,13 +9,19 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
+#define TRUE 1
 #define LOG "LOG"
 #define CONFIG_PATH "config/config_server"
+#define N_LOGFILE 10
+#define LOGFILE_THRESHOLD 65536 // byte
 
 int sockfd;
 void int_handler(int signalNum);
 int readConfFile(int PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
+void findLastModifiedFile(char *path);
+int countFilesInDirectory(char *path);
 
 int main(int argc, char *argv[])
 {
@@ -26,10 +32,8 @@ int main(int argc, char *argv[])
     // Default values for port and log path
     if (argc == 1){
         // Read default values from config server file
-        // --------------------------------------------------------------------------------------------------> ERRORE QUI, il server si blocca qua
-        if (readConfFile(PORT,LOGPATH) < 0){
+        if (readConfFile(PORT,LOGPATH) < 0)
             exit(EXIT_FAILURE);
-        }
     // Values passed from command line
     }else if( argc == 3){
         PORT = atoi(argv[1]);
@@ -79,7 +83,7 @@ int main(int argc, char *argv[])
     signal(SIGINT, int_handler);
     // Client socket where to read data
     int clientSocket;
-    while (!feof(stdin)){
+    while (TRUE){
         // Accept function extract the first connection on the queue of pending connections
         // pcreate a new socket with the same socket type protocol and address family as the specified socket
         if ((clientSocket = accept(sockfd,(struct sockaddr *)&client_addr, &client_addr_len)) == -1)
@@ -93,15 +97,19 @@ int main(int argc, char *argv[])
             close(clientSocket);
         }else if(pid == 0){
             // Child process
-            // Shutdown and close the socket created by server to save resources
-            shutdown(sockfd,SHUT_RDWR);
+            // Close the socket created by server to save resources
             close(sockfd);
 
             // -----------------------------------------------
             char path[1024];
             strcpy (path,LOGPATH);
-            printf("%s\n",path);
+    
+            // 0) Il processo figlio dovrebbe durare per affinche` il client e` connesso
+
+            // 1) Verificare il numero di logfile, se sono N_LOGFILE allora appendere i dati al file di log piu` recente, altrimenti, creare nuovo log file
             
+            // 2) Prima di eseguire un operazione di scrittura verificare sempre se e` stata raggiunta la LOGFILE_THRESHOLD, in caso positivo, cancellare il logfile piu' vecchio, crearne uno nuovo e scrivere su quello
+           
             /*int log = open(path, O_WRONLY | O_CREAT | O_APPEND, 0644);
             if (log == -1){
                 printf ("Error opening file\n");
@@ -120,16 +128,15 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
             strcat(logAddress, clientAddr);
-            write(log,logAddress,strlen(logAddress));
+            write(log,logAddress,strlen(logAddress));*/
             char message[1024];
             // Sistemare qui
+            
             if (recv(clientSocket,message,sizeof(message),0) == -1){
                 printf("Error to receive data from socket\n");
                 exit(EXIT_FAILURE);
             }
-            write(log,message,strlen(message));
-            strcat(message,"\n");*/
-
+            printf("%s\n",message);
             // -----------------------------------------------
             shutdown(clientSocket,SHUT_RDWR);
             close(clientSocket);
@@ -150,6 +157,7 @@ void int_handler(int signo){
     exit(EXIT_SUCCESS);
 }
 
+// Read data from conf file
 int readConfFile(int PORT, char LOGPATH[])
 {
     FILE *fp = fopen(CONFIG_PATH, "r");
@@ -167,7 +175,7 @@ int readConfFile(int PORT, char LOGPATH[])
 
     }
     fclose(fp);
-    exit(EXIT_SUCCESS);
+    return 0;
 }
 
 
@@ -176,11 +184,76 @@ int createDir(char LOGPATH[])
     // If LOGPATH does not exists then create it
     struct stat st;
     if (stat(LOGPATH,&st) == -1){
-        if (mkdir(LOGPATH, 644) == -1){
+        if (mkdir(LOGPATH, 777) == -1){
             printf("Error to create a dir");
-            exit(EXIT_FAILURE);
+            return -1;
         }
     }
 
-    exit(EXIT_SUCCESS);
+    return 0;
+}
+
+// Function to find last modified log file
+void findLastModifiedFile(char *path)
+{
+    DIR *dir;
+    struct dirent *entry;
+    struct stat fileStat;
+    time_t latestModTime = 0;
+    char latestModFileName[256] = ""; 
+    int nFile = 0;
+    dir = opendir(path);
+
+    if (dir == NULL) {
+        printf("Error opening directory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+    
+        char filePath[512];  
+        snprintf(filePath, sizeof(filePath), "%s/%s",path, entry->d_name);
+        if ((strcmp(entry->d_name, ".") != 0) && (strcmp(entry->d_name, "..") != 0) ){
+
+            if (stat(filePath, &fileStat) == 0) {
+                if (fileStat.st_mtime > latestModTime) {
+                    latestModTime = fileStat.st_mtime;
+                    strncpy(latestModFileName, entry->d_name, sizeof(latestModFileName));
+                }
+            } else {
+                printf("Error getting file information");
+                exit(EXIT_FAILURE);
+            }
+            
+        }
+    }
+    strcat(path,"/");
+    strcat(path,latestModFileName);
+    closedir(dir);
+}
+
+int countFilesInDirectory(char *path) {
+    DIR *dir;
+    struct dirent *entry;
+    int count = 0;
+
+    // Open the directory
+    dir = opendir(path);
+
+    // Check if the directory was successfully opened
+    if (dir == NULL) {
+        perror("Unable to open directory");
+        exit(EXIT_FAILURE);
+    }
+
+    // Count files in the directory
+    while ((entry = readdir(dir)) != NULL) {
+        if ((strcmp(entry->d_name, ".") != 0) && (strcmp(entry->d_name, "..") != 0))
+            count++;
+    }
+
+    // Close the directory
+    closedir(dir);
+
+    return count;
 }
