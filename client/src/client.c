@@ -95,19 +95,34 @@ int main (int argc, char *argv[])
     memset(data, 0, sizeof(data));
     // Get data from stdin
     printf("Send some data (press CTRL+D to quit): ");
-    while (fgets(data, sizeof(data), stdin) != NULL) {
-        printf("Send some data (press CTRL+D to quit): ");
-        
-        // Send data to server 
-        if (send(sockfd,data,strlen(data),0) == -1){
-            printf("Error to send data\n");
-            shutdown(sockfd,SHUT_RDWR); 
-            close(sockfd);
-            exit(EXIT_FAILURE);
+    pid_t pid = fork();
+    // Child process, this serve as controlling process to check when the connection from server is closed
+    if (pid == 0){
+        char *tmp;
+        if (recv(sockfd,tmp,sizeof(tmp),0) == 0){
+            printf("\nServer has closed connection\n");
+            kill(getppid(), SIGINT);
+            exit(EXIT_SUCCESS);
         }
 
-        memset(data, 0, sizeof(data));
+    }else if (pid > 0){
+        while (fgets(data, sizeof(data), stdin) != NULL) {
+            printf("Send some data (press CTRL+D to quit): ");
+        
+            // Send data to server 
+            if (send(sockfd,data,strlen(data),0) == -1){
+                printf("Error to send data\n");
+                shutdown(sockfd,SHUT_RDWR); 
+                close(sockfd);
+                exit(EXIT_FAILURE);
+            }
+
+            memset(data, 0, sizeof(data));
+        }    
+    }else{
+        printf("Fork error\n");
     }
+    
     printf("\nShutdown and close socket...\n");
     shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 

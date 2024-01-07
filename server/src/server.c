@@ -236,7 +236,9 @@ void io_handler(int signalNum)
 void int_handler(int signo)
 {
     printf("\nSIGINT signal received, shutdown and close socket\n");
-    fclose(logFile);
+    if (logFile != NULL)
+        fclose(logFile);
+    
     shutdown(sockfd, SHUT_RDWR);
     close(sockfd);
     exit(EXIT_SUCCESS);
