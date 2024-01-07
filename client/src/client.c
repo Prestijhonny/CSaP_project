@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include <signal.h>
 #include <time.h>
+#define TRUE 1
 #define MAX_HOSTNAME 1024
 
 int sockfd;
@@ -21,7 +22,7 @@ int main (int argc, char *argv[])
     struct hostent *host;
     // Default values for server address and port
     if (argc == 1){
-        FILE *fp = fopen("config/config_client", "r");
+        FILE *fp = fopen("../../config/config_client", "r");
         if (fp == NULL){
             printf("Error to open config file");
             exit(-1);
@@ -102,16 +103,21 @@ int main (int argc, char *argv[])
 
     // While loop until read EOF on stdin
     char data[2048];
-    while (!feof(stdin)) {
-        printf("Send some data (press ctrl+d to quit): ");
-        fgets(data, sizeof(data), stdin);
+    memset(data, 0, sizeof(data));
+    // Get data from stdin
+    printf("Send some data (press CTRL+D to quit): ");
+    while (fgets(data, sizeof(data), stdin) != NULL) {
+        printf("Send some data (press CTRL+D to quit): ");
+        
+        // Send data to server 
         if (send(sockfd,data,strlen(data),0) == -1){
             printf("Error to send data\n");
             shutdown(sockfd,SHUT_RDWR); 
             close(sockfd);
             exit(EXIT_FAILURE);
         }
-        strcpy(data, "");
+
+        memset(data, 0, sizeof(data));
     }
     printf("\nShutdown and close socket...\n");
     shutdown(sockfd,SHUT_RDWR); 
