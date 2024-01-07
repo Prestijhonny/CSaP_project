@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "cmath": "c"
+        "cmath": "c",
+        "server.h": "c",
+        "dirent.h": "c"
     }
 }

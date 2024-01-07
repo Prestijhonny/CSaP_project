@@ -18,7 +18,7 @@
 
 
 void int_handler(int signalNum);
-int readConfFile(int PORT, char LOGPATH[]);
+int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
 void findLastModifiedFile(char *path);
 int countFilesInDirectory(char *path);

@@ -1,44 +1,22 @@
-#include <stdlib.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <time.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#define TRUE 1
-#define LOG "LOG"
-#define CONFIG_PATH "../../config/config_server"
-#define N_LOGFILE 10
-#define LOGFILE_THRESHOLD 65536 
+#include "../include/server.h"
 
-
-void int_handler(int signalNum);
-int readConfFile(int PORT, char LOGPATH[]);
-int createDir(char LOGPATH[]);
-void findLastModifiedFile(char *path);
-int countFilesInDirectory(char *path);
-int handleClientConn(int clientSocket,FILE * logFile, char clientAddr[]);
-
+int sockfd;
+FILE * logFile;
 
 int main(int argc, char *argv[])
 {
     char LOGPATH[1024];
     int PORT;
-    int sockfd;
     struct sockaddr_in server, client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
     // Default values for port and log path
     if (argc == 1)
     {
         // Read default values from config server file
-        if (readConfFile(PORT, LOGPATH) < 0)
+        if (readConfFile(&PORT, LOGPATH) < 0)
             exit(EXIT_FAILURE);
         // Values passed from command line
+        printf("DEBUG PORT %d\n", PORT);
     }
     else if (argc == 3)
     {
@@ -119,16 +97,19 @@ int main(int argc, char *argv[])
     strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
     strcat(path, nameFile);
     // ---------------------------------------------------------------------------
-
+    // AGGIUNGERE LA FUNZIONE CHE QUANDO SCRIVI quit IL PROGRAMMA TERMINA
     // Client socket where to read data
     int clientSocket;
     while (TRUE)
     {
         // Accept function extract the first connection on the queue of pending connections
-        // pcreate a new socket with the same socket type protocol and address family as the specified socket
+        // create a new socket with the same socket type protocol and address family as the specified socket
         if ((clientSocket = accept(sockfd, (struct sockaddr *)&client_addr, &client_addr_len)) == -1)
             printf("Error accepting client connection...\n\n");
-
+        else{
+            char incomingAddr[INET_ADDRSTRLEN];
+            printf("Accepted connection from %s:%d\n", inet_ntop(AF_INET, &(client_addr.sin_addr), incomingAddr, sizeof(incomingAddr)), ntohs(client_addr.sin_port));
+        }
         pid_t pid = fork();
 
         if (pid == -1)
@@ -151,7 +132,7 @@ int main(int argc, char *argv[])
             // 2) Prima di eseguire un operazione di scrittura verificare sempre se e` stata raggiunta la LOGFILE_THRESHOLD, in caso positivo, cancellare il logfile piu' vecchio, crearne uno nuovo e scrivere su quello
 
             // I created FILE *log globally because i want to make it usable in sigint handler function
-            FILE * logFile = fopen(path, "a");
+            logFile = fopen(path, "a");
             if (logFile == NULL){
                 printf("Error opening file\n");
                 shutdown(clientSocket, SHUT_RDWR);
@@ -170,7 +151,7 @@ int main(int argc, char *argv[])
             }
 
             // Pensare a due messaggi migliori
-            if (handleClientConn(clientSocket, logFile, clientAddr) < 0)
+            if (handleClientConn(clientSocket, clientAddr) < 0)
                 printf("Error: cleaning everything\n");
             else
                 printf("Shutdown and close connection\n\n");
@@ -188,7 +169,7 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-int handleClientConn(int clientSocket, FILE * logFile,char clientAddr[])
+int handleClientConn(int clientSocket, char clientAddr[])
 {
     while (TRUE){
         char out[2048];
@@ -229,7 +210,7 @@ int handleClientConn(int clientSocket, FILE * logFile,char clientAddr[])
         int logFd = fileno(logFile);
         // Wait and get lock on file
         if (fcntl(logFd, F_SETLKW, &fl) == -1){
-            printf("Error locking file");
+            printf("Error locking file\n");
             return -1;
         }
         // File locked, the process obtained lock so it can write to file
@@ -238,10 +219,10 @@ int handleClientConn(int clientSocket, FILE * logFile,char clientAddr[])
         fl.l_type = F_UNLCK;
         // Release lock
         if (fcntl(logFd, F_SETLKW, &fl) == -1){
-            printf("Error unlocking file");
+            printf("Error unlocking file\n");
             return -1;
         }
-        fclose(logFile);       
+             
     }
 }
 
@@ -262,7 +243,7 @@ void int_handler(int signo)
 }
 
 // Read data from conf file
-int readConfFile(int PORT, char LOGPATH[])
+int readConfFile(int *PORT, char LOGPATH[])
 {
     FILE *fp = fopen(CONFIG_PATH, "r");
     if (fp == NULL)
@@ -273,9 +254,8 @@ int readConfFile(int PORT, char LOGPATH[])
     char line[50];
     while (fgets(line, sizeof(line), fp) != NULL)
     {
-
-        if (sscanf(line, "PORT %d", &PORT) == 1)
-            printf("Listening port: %d\n", PORT);
+        if (sscanf(line, "PORT %d", PORT) == 1)
+            printf("Listening port: %d\n", *PORT);
         else if (sscanf(line, "LOGPATH %s", LOGPATH) == 1)
             printf("Log file path: %s\n", LOGPATH);
     }

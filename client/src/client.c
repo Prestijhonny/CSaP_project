@@ -1,17 +1,6 @@
-#include <stdlib.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <netdb.h>
-#include <signal.h>
-#include <time.h>
-#define TRUE 1
-#define MAX_HOSTNAME 1024
+#include "../include/client.h"
 
 int sockfd;
-void int_handler(int signalNum);
 
 int main (int argc, char *argv[])
 {
@@ -85,7 +74,7 @@ int main (int argc, char *argv[])
     int status;
     // Connect client to server
     if ((status = connect(sockfd, (struct sockaddr*)&server, sizeof(server))) < 0) {
-        printf("Connection Failed \n");
+        printf("Connection Failed\n");
         shutdown(sockfd,SHUT_RDWR); 
         close(sockfd);
         exit(EXIT_FAILURE);
