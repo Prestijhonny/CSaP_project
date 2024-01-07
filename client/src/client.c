@@ -121,6 +121,7 @@ int main (int argc, char *argv[])
         }    
     }else{
         printf("Fork error\n");
+        
     }
     
     printf("\nShutdown and close socket...\n");
