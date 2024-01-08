@@ -87,15 +87,29 @@ int main(int argc, char *argv[])
     strcpy(path, LOGPATH);
     strcat(path, "/");
     strcat(path, LOG);
-    // Da modificare , momentanemente lasciamo la gestione dei file di log a quando il prof risponde
-    time_t rawtime;
-    struct tm *timeinfo;
-    char nameFile[80];
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    // Format the date and time
-    strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
-    strcat(path, nameFile);
+    // There are zero files 
+    if (countFilesInDirectory(path) == 0){
+        time_t rawtime;
+        struct tm *timeinfo;
+        char nameFile[80];
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        // Format the date and time
+        strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
+        strcat(path, nameFile);
+        // 1) All'accensione del server se non ci sono log file crearne uno e scrivere su quello altrimenti scrivere sul piu` recente su cui e` stato scritto
+        
+        // 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
+
+        // I created FILE *log globally because i want to make it usable in sigint handler function
+        logFile = fopen(path, "a");
+            if (logFile == NULL){
+                printf("Error opening file\n");
+                shutdown(sockfd, SHUT_RDWR);
+                close(sockfd);
+                exit(EXIT_FAILURE);
+            }
+    }
     // ---------------------------------------------------------------------------
     // AGGIUNGERE LA FUNZIONE CHE QUANDO SCRIVI quit IL PROGRAMMA TERMINA
     // Client socket where to read data
@@ -126,21 +140,6 @@ int main(int argc, char *argv[])
             
             printf("A client has connected.\n");
 
-
-            // 1) Verificare il numero di logfile, se sono N_LOGFILE allora appendere i dati al file di log piu` recente, altrimenti, creare nuovo log file
-
-            // 2) Prima di eseguire un operazione di scrittura verificare sempre se e` stata raggiunta la LOGFILE_THRESHOLD, in caso positivo, cancellare il logfile piu' vecchio, crearne uno nuovo e scrivere su quello
-
-            // I created FILE *log globally because i want to make it usable in sigint handler function
-            logFile = fopen(path, "a");
-            if (logFile == NULL){
-                printf("Error opening file\n");
-                shutdown(clientSocket, SHUT_RDWR);
-                close(clientSocket);
-                exit(EXIT_FAILURE);
-            }
-            
-
             char clientAddr[INET_ADDRSTRLEN];
             if (inet_ntop(AF_INET, &(client_addr.sin_addr), clientAddr, sizeof(clientAddr)) == NULL)
             {
@@ -150,7 +149,7 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
 
-            // Pensare a due messaggi migliori
+            
             if (handleClientConn(clientSocket, clientAddr) < 0)
                 printf("Error: cleaning everything\n");
             else
@@ -171,64 +170,77 @@ int main(int argc, char *argv[])
 
 int handleClientConn(int clientSocket, char clientAddr[])
 {
+    fd_set readfds;
     while (TRUE){
-        char out[2048];
-        memset(out, 0, sizeof(out));
-        // Get current time
-        time_t currentTime;
-        time(&currentTime);
-        // Convert time to string representation
-        char *timeString = ctime(&currentTime);
-        strcpy(out, timeString);
-        char logAddress[1024] = "Client address: ";
-        strcat(logAddress, clientAddr);
-        strcat(out, logAddress);
-        strcat(out, "\n");
-        char message[1024];
-        strcat(out, "Client message: ");
-        // Clean message string VERY IMPORTANT to make it works correctly
-        memset(message, 0, sizeof(message));
-        // Number of bytes received from clien socket and store it in message string 
-        ssize_t bytesReceived = recv(clientSocket, message, sizeof(message), 0);
-        // Handling recv error
-        if (bytesReceived == -1){
-            printf("Error to receive data from socket\n");
+        FD_ZERO(&readfds);
+        FD_SET(clientSocket, &readfds);
+        int ready = select(clientSocket+1, &readfds, NULL,NULL,NULL);
+        // If data is ready on socket then read data and write it into logfile
+        if (ready > 0){
+            // It verifies if the socket is ready for reading data
+            if (FD_ISSET(clientSocket,&readfds)){
+                char out[2048];
+                memset(out, 0, sizeof(out));
+                // Get current time
+                time_t currentTime;
+                time(&currentTime);
+                // Convert time to string representation
+                char *timeString = ctime(&currentTime);
+                strcpy(out, timeString);
+                char logAddress[1024] = "Client address: ";
+                strcat(logAddress, clientAddr);
+                strcat(out, logAddress);
+                strcat(out, "\n");
+                char message[1024];
+                strcat(out, "Client message: ");
+                // Clean message string VERY IMPORTANT to make it works correctly
+                memset(message, 0, sizeof(message));
+                // Number of bytes received from clien socket and store it in message string 
+                ssize_t bytesReceived = recv(clientSocket, message, sizeof(message), 0);
+                // Handling recv error
+                if (bytesReceived == -1){
+                    printf("Error to receive data from socket\n");
+                    return -1;
+                }else if (bytesReceived == 0){
+                // It means that the client has disconnected
+                    printf("A client has disconnected\n");
+                    return 0;
+                }
+                
+                strcat(out, message);
+                strcat(out, "\n");
+                // ====================================
+                // Capire qual e` la tecnica che vuole il prof
+                struct flock fl;
+                fl.l_type = F_WRLCK; // Exclusive write lock
+                fl.l_whence = SEEK_SET;
+                fl.l_start = 0;
+                fl.l_len = 0; // Lock the entire file
+                int logFd = fileno(logFile);
+                // Wait and get lock on file
+                if (fcntl(logFd, F_SETLKW, &fl) == -1){
+                    printf("Error locking file\n");
+                    return -1;
+                }
+                // File locked, the process obtained lock so it can write to file
+                fwrite(out, 1, strlen(out), logFile);
+                
+                fl.l_type = F_UNLCK;
+                // Release lock
+                if (fcntl(logFd, F_SETLKW, &fl) == -1){
+                    printf("Error unlocking file\n");
+                    return -1;
+                }
+                // ====================================
+            }
+            
+        }else if (ready == -1){
+            printf("Select error\n");
             return -1;
-        }else if (bytesReceived == 0){
-        // It means that the client has disconnected
-            printf("A client has disconnected\n");
-            return 0;
         }
         
-        strcat(out, message);
-        strcat(out, "\n");
-        struct flock fl;
-        fl.l_type = F_WRLCK; // Exclusive write lock
-        fl.l_whence = SEEK_SET;
-        fl.l_start = 0;
-        fl.l_len = 0; // Lock the entire file
-        int logFd = fileno(logFile);
-        // Wait and get lock on file
-        if (fcntl(logFd, F_SETLKW, &fl) == -1){
-            printf("Error locking file\n");
-            return -1;
-        }
-        // File locked, the process obtained lock so it can write to file
-        fwrite(out, 1, strlen(out), logFile);
-        
-        fl.l_type = F_UNLCK;
-        // Release lock
-        if (fcntl(logFd, F_SETLKW, &fl) == -1){
-            printf("Error unlocking file\n");
-            return -1;
-        }
              
     }
-}
-
-void io_handler(int signalNum)
-{
-    printf("SIGIO received!\n");
 }
 
 

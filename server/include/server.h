@@ -8,13 +8,14 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/select.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #define TRUE 1
 #define LOG "LOG"
-#define CONFIG_PATH "../../config/config_server"
-#define N_LOGFILE 10
-#define LOGFILE_THRESHOLD 65536 
+#define CONFIG_PATH "../../config/config_server" 
+#define LOGFILE_THRESHOLD 1024 
+#define NUM_LOGFILES 5
 
 
 void int_handler(int signalNum);
