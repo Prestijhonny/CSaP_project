@@ -1,7 +1,7 @@
 #include "../include/client.h"
 
-int sockfd;
-pid_t PPID;
+extern int sockfd;
+extern pid_t PPID;
 
 int main (int argc, char *argv[])
 {
@@ -97,23 +97,15 @@ int main (int argc, char *argv[])
     char data[2048];
     memset(data, 0, sizeof(data));
     // Get data from stdin
-    printf("Send some data (press CTRL+D to quit): ");
+    printf("Send some data (press CTRL+D or type exit to quit): ");
     pid_t pid = fork();
     // Child process, this serve as controlling process to check when the connection from server is closed
     if (pid == 0){
-        char *tmp;
-        if (recv(sockfd,tmp,sizeof(tmp),0) == 0){
-            printf("\nServer has closed connection\n");
-            kill(getppid(), SIGINT);
-            shutdown(sockfd,SHUT_RDWR); 
-            close(sockfd);
-            exit(EXIT_SUCCESS);
-        }
-
+        checkServerConnection(sockfd);
     }else if (pid > 0){
+        // Parent process
         while (fgets(data, sizeof(data), stdin) != NULL) {
-            printf("Send some data (press CTRL+D to quit): ");
-        
+            printf("Send some data (press CTRL+D or type exit to quit): ");
             // Send data to server 
             if (send(sockfd,data,strlen(data),0) == -1){
                 printf("Error to send data\n");
@@ -125,20 +117,13 @@ int main (int argc, char *argv[])
             memset(data, 0, sizeof(data));
         }    
     }else{
-        printf("Fork error\n");
-        
+        printf("Error creating child process\n");
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        exit(EXIT_FAILURE);
     }
     
     printf("\nShutdown and close socket...\n");
-    shutdown(sockfd,SHUT_RDWR); 
-    close(sockfd); 
-    exit(EXIT_SUCCESS);
-}
-
-// Handler for SIGINT signal
-void int_handler(int signo){
-    if (getpid() == PPID)
-        printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
     shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 
     exit(EXIT_SUCCESS);

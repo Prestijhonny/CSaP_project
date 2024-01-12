@@ -85,6 +85,7 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 // Handler for SIGINT signal
 void int_handler(int signo)
 {
+    fflush(stdin);
     sem_close(&sem);
     // Only parent process use this code
     if (getpid() == PPID){
