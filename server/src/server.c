@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
     strcpy(path, LOGPATH);
     strcat(path, "/");
     
-    // There are zero files 
+    // There are zero files, so i will create it 
     if (countFilesInDirectory(path) == 0){
         time_t rawtime;
         struct tm *timeinfo;
@@ -99,16 +99,18 @@ int main(int argc, char *argv[])
         
         // 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
 
-        // I created FILE *log globally because i want to make it usable in sigint handler function
-        logFile = fopen(path, "a");
-            if (logFile == NULL){
-                printf("Error opening file\n");
-                shutdown(sockfd, SHUT_RDWR);
-                close(sockfd);
-                exit(EXIT_FAILURE);
-            }
+        
     }
-    // ---------------------------------------------------------------------------
+    
+    // I created FILE *log globally because i want to make it usable in sigint handler function
+    logFile = fopen(path, "a");
+    if (logFile == NULL){
+        printf("Error opening file\n");
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
     
     printf("-------------------------------\n");
     printf("| Server started successfully |\n");
