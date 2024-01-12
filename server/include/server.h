@@ -11,6 +11,7 @@
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <semaphore.h>
 #define TRUE 1
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server" 

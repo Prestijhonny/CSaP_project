@@ -2,6 +2,8 @@
 
 int sockfd;
 FILE * logFile;
+pid_t PPID;
+sem_t sem;
 
 int main(int argc, char *argv[])
 {
@@ -9,16 +11,18 @@ int main(int argc, char *argv[])
     int PORT;
     struct sockaddr_in server, client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
+
+    // Get parent process pid
+    PPID = getpid();
     // Default values for port and log path
     if (argc == 1)
     {
         // Read default values from config server file
         if (readConfFile(&PORT, LOGPATH) < 0)
             exit(EXIT_FAILURE);
-        // Values passed from command line
-        printf("DEBUG PORT %d\n", PORT);
+        
     }
-    else if (argc == 3)
+    else if (argc == 3) // Values passed from command line
     {
         PORT = atoi(argv[1]);
         strcpy(LOGPATH, "../../");
@@ -69,15 +73,7 @@ int main(int argc, char *argv[])
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-    printf("-------------------------------\n");
-    printf("| Server started successfully |\n");
-    printf("-------------------------------\n");
-    // Get current time
-    time_t currentTime;
-    time(&currentTime);
-    // Convert time to string representation
-    char *timeString = ctime(&currentTime);
-    printf("\nDate and time: %s\n",timeString);
+    
     // Install SIGINT signal: manage ctrl+c action by int_handler function
     signal(SIGINT, int_handler);
 
@@ -86,7 +82,7 @@ int main(int argc, char *argv[])
     char path[1024];
     strcpy(path, LOGPATH);
     strcat(path, "/");
-    strcat(path, LOG);
+    
     // There are zero files 
     if (countFilesInDirectory(path) == 0){
         time_t rawtime;
@@ -96,7 +92,9 @@ int main(int argc, char *argv[])
         timeinfo = localtime(&rawtime);
         // Format the date and time
         strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
+        strcat(path, LOG);
         strcat(path, nameFile);
+       
         // 1) All'accensione del server se non ci sono log file crearne uno e scrivere su quello altrimenti scrivere sul piu` recente su cui e` stato scritto
         
         // 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
@@ -112,6 +110,16 @@ int main(int argc, char *argv[])
     }
     // ---------------------------------------------------------------------------
     // AGGIUNGERE LA FUNZIONE CHE QUANDO SCRIVI quit IL PROGRAMMA TERMINA
+    printf("-------------------------------\n");
+    printf("| Server started successfully |\n");
+    printf("-------------------------------\n");
+    // Get current time
+    time_t currentTime;
+    time(&currentTime);
+    // Convert time to string representation
+    char *timeString = ctime(&currentTime);
+    printf("\nDate and time: %s\n",timeString);
+    sem_init(&sem,0,1);
     // Client socket where to read data
     int clientSocket;
     while (TRUE)
@@ -138,7 +146,7 @@ int main(int argc, char *argv[])
             // Close the socket created by server to save resources
             close(sockfd);
             
-            printf("A client has connected.\n");
+            printf("A client has connected.\n\n");
 
             char clientAddr[INET_ADDRSTRLEN];
             if (inet_ntop(AF_INET, &(client_addr.sin_addr), clientAddr, sizeof(clientAddr)) == NULL)
@@ -155,6 +163,7 @@ int main(int argc, char *argv[])
             else
                 printf("Shutdown and close connection\n\n");
             
+            sem_close(&sem);
             fclose(logFile);
             shutdown(clientSocket, SHUT_RDWR);
             close(clientSocket);
@@ -162,7 +171,7 @@ int main(int argc, char *argv[])
         }
         
     }
-
+    sem_destroy(&sem);
     shutdown(sockfd, SHUT_RDWR);
     close(sockfd);
     exit(EXIT_SUCCESS);
@@ -170,87 +179,63 @@ int main(int argc, char *argv[])
 
 int handleClientConn(int clientSocket, char clientAddr[])
 {
-    fd_set readfds;
+    
     while (TRUE){
-        FD_ZERO(&readfds);
-        FD_SET(clientSocket, &readfds);
-        int ready = select(clientSocket+1, &readfds, NULL,NULL,NULL);
-        // If data is ready on socket then read data and write it into logfile
-        if (ready > 0){
-            // It verifies if the socket is ready for reading data
-            if (FD_ISSET(clientSocket,&readfds)){
-                char out[2048];
-                memset(out, 0, sizeof(out));
-                // Get current time
-                time_t currentTime;
-                time(&currentTime);
-                // Convert time to string representation
-                char *timeString = ctime(&currentTime);
-                strcpy(out, timeString);
-                char logAddress[1024] = "Client address: ";
-                strcat(logAddress, clientAddr);
-                strcat(out, logAddress);
-                strcat(out, "\n");
-                char message[1024];
-                strcat(out, "Client message: ");
-                // Clean message string VERY IMPORTANT to make it works correctly
-                memset(message, 0, sizeof(message));
-                // Number of bytes received from clien socket and store it in message string 
-                ssize_t bytesReceived = recv(clientSocket, message, sizeof(message), 0);
-                // Handling recv error
-                if (bytesReceived == -1){
-                    printf("Error to receive data from socket\n");
-                    return -1;
-                }else if (bytesReceived == 0){
-                // It means that the client has disconnected
-                    printf("A client has disconnected\n");
-                    return 0;
-                }
-                
-                strcat(out, message);
-                strcat(out, "\n");
-                // ====================================
-                // Capire qual e` la tecnica che vuole il prof
-                struct flock fl;
-                fl.l_type = F_WRLCK; // Exclusive write lock
-                fl.l_whence = SEEK_SET;
-                fl.l_start = 0;
-                fl.l_len = 0; // Lock the entire file
-                int logFd = fileno(logFile);
-                // Wait and get lock on file
-                if (fcntl(logFd, F_SETLKW, &fl) == -1){
-                    printf("Error locking file\n");
-                    return -1;
-                }
-                // File locked, the process obtained lock so it can write to file
-                fwrite(out, 1, strlen(out), logFile);
-                
-                fl.l_type = F_UNLCK;
-                // Release lock
-                if (fcntl(logFd, F_SETLKW, &fl) == -1){
-                    printf("Error unlocking file\n");
-                    return -1;
-                }
-                // ====================================
-            }
-            
-        }else if (ready == -1){
-            printf("Select error\n");
+        char out[2048];
+        memset(out, 0, sizeof(out));
+        // Get current time
+        time_t currentTime;
+        time(&currentTime);
+        // Convert time to string representation
+        char *timeString = ctime(&currentTime);
+        strcpy(out, timeString);
+        char logAddress[1024] = "Client address: ";
+        strcat(logAddress, clientAddr);
+        strcat(out, logAddress);
+        strcat(out, "\n");
+        char message[1024];
+        strcat(out, "Client message: ");
+        // Clean message string VERY IMPORTANT to make it works correctly
+        memset(message, 0, sizeof(message));
+        // Number of bytes received from clien socket and store it in message string 
+        ssize_t bytesReceived = recv(clientSocket, message, sizeof(message), 0);
+        // Handling recv error
+        if (bytesReceived == -1){
+            printf("Error to receive data from socket\n");
             return -1;
+        }else if (bytesReceived == 0){
+        // It means that the client has disconnected
+            printf("A client has disconnected\n");
+            return 0;
         }
         
-             
+        strcat(out, message);
+        strcat(out, "\n");
+        
+        sem_wait(&sem);
+
+        write(fileno(logFile),out ,strlen(out));
+
+        sem_post(&sem);
     }
+
+    
 }
 
 
 // Handler for SIGINT signal
 void int_handler(int signo)
 {
-    printf("\nSIGINT signal received, shutdown and close socket\n");
+    sem_close(&sem);
+    // Only parent process use this code
+    if (getpid() == PPID){
+        printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
+        sem_destroy(&sem);
+    }
+    
     if (logFile != NULL)
         fclose(logFile);
-    
+
     shutdown(sockfd, SHUT_RDWR);
     close(sockfd);
     exit(EXIT_SUCCESS);

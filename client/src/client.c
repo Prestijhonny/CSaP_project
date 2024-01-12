@@ -1,6 +1,7 @@
 #include "../include/client.h"
 
 int sockfd;
+pid_t PPID;
 
 int main (int argc, char *argv[])
 {
@@ -9,6 +10,8 @@ int main (int argc, char *argv[])
     char SERVER_ADDR[INET_ADDRSTRLEN];
     char HOSTNAME[MAX_HOSTNAME];
     struct hostent *host;
+    // Get parent process pid
+    PPID = getpid();
     // Default values for server address and port
     if (argc == 1){
         FILE *fp = fopen("../../config/config_client", "r");
@@ -102,6 +105,8 @@ int main (int argc, char *argv[])
         if (recv(sockfd,tmp,sizeof(tmp),0) == 0){
             printf("\nServer has closed connection\n");
             kill(getppid(), SIGINT);
+            shutdown(sockfd,SHUT_RDWR); 
+            close(sockfd);
             exit(EXIT_SUCCESS);
         }
 
@@ -132,7 +137,8 @@ int main (int argc, char *argv[])
 
 // Handler for SIGINT signal
 void int_handler(int signo){
-    printf("\nSIGINT signal received, shutdown and close socket\n");
+    if (getpid() == PPID)
+        printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
     shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 
     exit(EXIT_SUCCESS);
