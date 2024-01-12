@@ -93,36 +93,37 @@ int main (int argc, char *argv[])
     // Register a signal SIGINT (CTRL+c when pressed on cmd)
     signal(SIGINT, int_handler);
 
+    if (setSocketNonBlocking(sockfd) == -1){
+        printf("Error to set socket non block mode\n");
+        exit(EXIT_FAILURE);
+    }
+
     // While loop until read EOF on stdin
     char data[2048];
     memset(data, 0, sizeof(data));
     // Get data from stdin
     printf("Send some data (press CTRL+D or type exit to quit): ");
-    pid_t pid = fork();
-    // Child process, this serve as controlling process to check when the connection from server is closed
-    if (pid == 0){
-        checkServerConnection(sockfd);
-    }else if (pid > 0){
-        // Parent process
-        while (fgets(data, sizeof(data), stdin) != NULL) {
-            printf("Send some data (press CTRL+D or type exit to quit): ");
-            // Send data to server 
-            if (send(sockfd,data,strlen(data),0) == -1){
-                printf("Error to send data\n");
-                shutdown(sockfd,SHUT_RDWR); 
-                close(sockfd);
-                exit(EXIT_FAILURE);
-            }
-
-            memset(data, 0, sizeof(data));
-        }    
-    }else{
-        printf("Error creating child process\n");
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
     
+    while (fgets(data, sizeof(data), stdin) != NULL) {
+        printf("Send some data (press CTRL+D or type exit to quit): ");
+        
+        /*ssize_t bytesRead = recv(sockfd, NULL, 0, MSG_PEEK);
+
+        if (bytesRead == 0){
+            printf("\nThe server has disconnected\n");
+            break;
+        }*/
+
+        // Send data to server 
+        if (send(sockfd,data,strlen(data),0) == -1){
+            printf("Error to send data\n");
+            shutdown(sockfd,SHUT_RDWR); 
+            close(sockfd);
+            exit(EXIT_FAILURE);
+        }
+
+        memset(data, 0, sizeof(data));
+    }
     printf("\nShutdown and close socket...\n");
     shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 

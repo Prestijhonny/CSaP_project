@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <time.h>
 #include <sys/select.h>
+#include <fcntl.h>
 #define TRUE 1
 #define MAX_HOSTNAME 1024
 
@@ -16,6 +17,7 @@ int sockfd;
 
 void int_handler(int signalNum);
 void checkServerConnection(int server_socket);
+int setSocketNonBlocking(int sockfd);
 
 
 // Handler for SIGINT signal
@@ -29,6 +31,7 @@ void int_handler(int signo){
     exit(EXIT_SUCCESS);
 }
 
+// Metodo in standby per ora 
 void checkServerConnection(int server_socket) {
     ssize_t bytesRead = recv(server_socket, NULL, 0, MSG_PEEK);
     if (bytesRead == 0) {
@@ -43,4 +46,19 @@ void checkServerConnection(int server_socket) {
         close(sockfd);
         exit(EXIT_FAILURE);
     }
+}
+
+int setSocketNonBlocking(int sockfd) {
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags == -1) {
+        printf("fcntl error\n");
+        return -1;
+    }
+
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        printf("fcntl error\n");
+        return -1;
+    }
+
+    return 0;
 }
