@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
             }
     }
     // ---------------------------------------------------------------------------
-    // AGGIUNGERE LA FUNZIONE CHE QUANDO SCRIVI quit IL PROGRAMMA TERMINA
+    
     printf("-------------------------------\n");
     printf("| Server started successfully |\n");
     printf("-------------------------------\n");
@@ -129,47 +129,47 @@ int main(int argc, char *argv[])
         if ((clientSocket = accept(sockfd, (struct sockaddr *)&client_addr, &client_addr_len)) == -1)
             printf("Error accepting client connection...\n\n");
         else{
-            char incomingAddr[INET_ADDRSTRLEN];
-            printf("Accepted connection from %s:%d\n", inet_ntop(AF_INET, &(client_addr.sin_addr), incomingAddr, sizeof(incomingAddr)), ntohs(client_addr.sin_port));
-        }
-        pid_t pid = fork();
-
-        if (pid == -1)
-        {
-            printf("Error creating child process\n");
-            shutdown(clientSocket, SHUT_RDWR);
-            close(clientSocket);
-        }
-        else if (pid == 0)
-        {
-            // Child process
-            // Close the socket created by server to save resources
-            close(sockfd);
+            // If the connection has accepted correctly from server
             
-            printf("A client has connected.\n\n");
-
             char clientAddr[INET_ADDRSTRLEN];
-            if (inet_ntop(AF_INET, &(client_addr.sin_addr), clientAddr, sizeof(clientAddr)) == NULL)
-            {
+            if (inet_ntop(AF_INET, &(client_addr.sin_addr), clientAddr, sizeof(clientAddr)) == NULL){
                 printf("Error converting client address to string");
                 shutdown(clientSocket, SHUT_RDWR);
                 close(clientSocket);
                 exit(EXIT_FAILURE);
             }
+            
+            int intPortOfClient = ntohs(client_addr.sin_port);
+            printf("A client has connected, accepted connection from %s:%d\n", clientAddr, intPortOfClient);
 
-            
-            if (handleClientConn(clientSocket, clientAddr) < 0)
-                printf("Error: cleaning everything\n");
-            else
-                printf("Shutdown and close connection\n\n");
-            
-            sem_close(&sem);
-            fclose(logFile);
-            shutdown(clientSocket, SHUT_RDWR);
-            close(clientSocket);
-            exit(EXIT_SUCCESS);
-        }
+            pid_t pid = fork();
+
+            if (pid == -1)
+            {
+                printf("Error creating child process\n");
+                shutdown(clientSocket, SHUT_RDWR);
+                close(clientSocket);
+            }
+            else if (pid == 0)
+            {
+                // Child process
+                // Close the socket created by server to save resources
+                close(sockfd);
+
+
+                if (handleClientConn(clientSocket, clientAddr, intPortOfClient) < 0)
+                    printf("Error: cleaning everything\n");
+                else
+                    printf("Shutdown and close connection\n\n");
+                
+                sem_close(&sem);
+                fclose(logFile);
+                shutdown(clientSocket, SHUT_RDWR);
+                close(clientSocket);
+                exit(EXIT_SUCCESS);
+            }
         
+        }
     }
     sem_destroy(&sem);
     shutdown(sockfd, SHUT_RDWR);
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-int handleClientConn(int clientSocket, char clientAddr[])
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 {
     
     while (TRUE){
@@ -191,6 +191,10 @@ int handleClientConn(int clientSocket, char clientAddr[])
         strcpy(out, timeString);
         char logAddress[1024] = "Client address: ";
         strcat(logAddress, clientAddr);
+        strcat(logAddress, ":");
+        char portClient[16];
+        snprintf(portClient, sizeof(portClient), "%d", intPortOfClient);
+        strcat(logAddress, portClient);
         strcat(out, logAddress);
         strcat(out, "\n");
         char message[1024];
@@ -205,7 +209,7 @@ int handleClientConn(int clientSocket, char clientAddr[])
             return -1;
         }else if (bytesReceived == 0){
         // It means that the client has disconnected
-            printf("A client has disconnected\n");
+            printf("The client %s:%d has disconnected\n",clientAddr,intPortOfClient);
             return 0;
         }
         

@@ -24,4 +24,4 @@ int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
 void findLastModifiedFile(char *path);
 int countFilesInDirectory(char *path);
-int handleClientConn(int clientSocket, char clientAddr[]);
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient);
