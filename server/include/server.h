@@ -99,10 +99,8 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, c
     }
 }
 
-// 1) All'accensione del server se non ci sono log file crearne uno e scrivere su quello altrimenti scrivere sul piu` recente su cui e` stato scritto
 
-// 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
-
+// Function to write on logfile, it checks for threshold
 void checkFile(char logPath[], char pathToFile[], char out[])
 {
     int numberOfCharaters = countNumberOfCharacters(logPath);
