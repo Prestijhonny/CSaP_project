@@ -14,28 +14,43 @@
 #include <semaphore.h>
 #define TRUE 1
 #define LOG "LOG"
-#define CONFIG_PATH "../../config/config_server" 
-#define LOGFILE_THRESHOLD 1024 
+#define CONFIG_PATH "../../config/config_server"
+#define LOGFILE_THRESHOLD 1024
 #define NUM_LOGFILES 5
 
 sem_t sem;
 int sockfd;
-FILE * logFile;
+FILE *logFile;
 pid_t PPID;
 
-void int_handler(int signalNum);
+void createNewFilename(char path[]);
+void handler(int signo);
+void checkFile(char logPath[], char out[2048]);
+void findLastModifiedFile(char *path);
 int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
-void findLastModifiedFile(char *path);
 int countFilesInDirectory(char *path);
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient);
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[]);
 int countNumberOfCharacters(char path[]);
 
-
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
+void createNewFilename(char path[])
 {
-    
-    while (TRUE){
+    time_t rawtime;
+    struct tm *timeinfo;
+    char nameFile[80];
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    // Format the date and time
+    strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
+    strcat(path, LOG);
+    strcat(path, nameFile);
+}
+
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[])
+{
+
+    while (TRUE)
+    {
         char out[2048];
         memset(out, 0, sizeof(out));
         // Get current time
@@ -44,10 +59,11 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
         // Convert time to string representation
         char *timeString = ctime(&currentTime);
         strcpy(out, timeString);
-        char logAddress[1024] = "Client address: ";
+        char logAddress[64] = "Client address: ";
         strcat(logAddress, clientAddr);
         strcat(logAddress, ":");
         char portClient[16];
+        // Convert integer to string
         snprintf(portClient, sizeof(portClient), "%d", intPortOfClient);
         strcat(logAddress, portClient);
         strcat(out, logAddress);
@@ -56,49 +72,78 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
         strcat(out, "Client message: ");
         // Clean message string VERY IMPORTANT to make it works correctly
         memset(message, 0, sizeof(message));
-        // Number of bytes received from clien socket and store it in message string 
+        // Number of bytes received from clien socket and store it in message string
         ssize_t bytesReceived = recv(clientSocket, message, sizeof(message), 0);
         // Handling recv error
-        if (bytesReceived == -1){
+        if (bytesReceived == -1)
+        {
             printf("Error to receive data from socket\n");
             return -1;
-        }else if (bytesReceived == 0){
-        // It means that the client has disconnected
-            printf("The client %s:%d has disconnected\n",clientAddr,intPortOfClient);
+        }
+        else if (bytesReceived == 0)
+        {
+            // It means that the client has disconnected
+            printf("The client %s:%d has disconnected\n", clientAddr, intPortOfClient);
             return 0;
         }
-        
+
         strcat(out, message);
         strcat(out, "\n");
-        
+
         sem_wait(&sem);
 
-        write(fileno(logFile),out ,strlen(out));
+        checkFile(logPath, out);
 
         sem_post(&sem);
     }
-
-    
 }
 
+void checkFile(char logPath[], char out[])
+{
+    int numberOfCharaters = countNumberOfCharacters(logPath);
+    // If the file has exceeded the threshold in terms of characters
+    if (numberOfCharaters >= LOGFILE_THRESHOLD)
+    {
+        // Also if the number of files reached the max number of logfile, i create a new file and delete the oldest one
+        if (countFilesInDirectory(logPath) == NUM_LOGFILES)
+        {
+        }
+        else
+        {
+        }
+    }
+    else
+    {
+        // The file has not exceeded the threshold in terms of characters, so i just write on that file
+        write(fileno(logFile), out, strlen(out));
+    }
+}
 
 // Handler for SIGINT signal
-void int_handler(int signo)
+void handler(int signo)
 {
-    fflush(stdin);
-    sem_close(&sem);
-    // Only parent process use this code
-    if (getpid() == PPID){
-        printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
-        sem_destroy(&sem);
-    }
-    
-    if (logFile != NULL)
-        fclose(logFile);
+    if (signo == SIGINT)
+    {
+        fflush(stdin);
+        sem_close(&sem);
+        // Only parent process use this code
+        if (getpid() == PPID)
+        {
+            printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
+            sem_destroy(&sem);
+        }
 
-    shutdown(sockfd, SHUT_RDWR);
-    close(sockfd);
-    exit(EXIT_SUCCESS);
+        if (logFile != NULL)
+            fclose(logFile);
+
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        exit(EXIT_SUCCESS);
+    }
+    else if (signo == SIGUSR1)
+    {
+        // Try to manage the case when the file has exceeded the threshold in terms of characters
+    }
 }
 
 // Read data from conf file when server starts
@@ -178,7 +223,7 @@ void findLastModifiedFile(char *path)
             }
         }
     }
-    
+
     strcat(path, latestModFileName);
     closedir(dir);
 }
@@ -215,16 +260,17 @@ int countFilesInDirectory(char *path)
 int countNumberOfCharacters(char path[])
 {
     FILE *fp = fopen(path, "r");
-    if (fp == NULL){
+    if (fp == NULL)
+    {
         printf("Error to open file for checking number of characters\n");
         return -1;
     }
     // Positioning the pointer at end of file
-    fseek(fp,0,SEEK_END);
+    fseek(fp, 0, SEEK_END);
     // Get the current position of pointer with respect to the beginning of the file
     int numberOfCharaters = ftell(fp);
     // Positioning the pointer at start of file
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
     fclose(fp);
     return numberOfCharaters;

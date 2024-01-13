@@ -74,9 +74,10 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     
-    // Install SIGINT signal: manage ctrl+c action by int_handler function
-    signal(SIGINT, int_handler);
-
+    // Install SIGINT signal: manage ctrl+c action by handler function
+    signal(SIGINT, handler);
+    // Install SIGUSR1 signal: manage the case when file has exceeded the threshold in terms of characters
+    // signal(SIGUSR1, handler);
     char path[1024];
     strcpy(path, LOGPATH);
     strcat(path, "/");
@@ -84,16 +85,10 @@ int main(int argc, char *argv[])
     int numFile = countFilesInDirectory(path);
     // If there are zero files, i will create the first
     if (numFile == 0){
-        time_t rawtime;
-        struct tm *timeinfo;
-        char nameFile[80];
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        // Format the date and time
-        strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
-        strcat(path, LOG);
-        strcat(path, nameFile);
-       
+        printf("Debug before %s\n", path);
+        createNewFilename(path);
+        printf("Debug after %s\n", path);
+        getchar();
         // 1) All'accensione del server se non ci sono log file crearne uno e scrivere su quello altrimenti scrivere sul piu` recente su cui e` stato scritto
         
         // 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
@@ -125,7 +120,16 @@ int main(int argc, char *argv[])
     // Convert time to string representation
     char *timeString = ctime(&currentTime);
     printf("\nDate and time: %s\n",timeString);
-    sem_init(&sem,0,1);
+    
+    // Unamed semaphore
+    if (sem_init(&sem,0,1)  == -1){
+        printf("Error initializing semaphore\n");
+        fclose(logFile);
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
     // Client socket where to read data
     int clientSocket;
     while (TRUE)
@@ -163,7 +167,7 @@ int main(int argc, char *argv[])
                 close(sockfd);
 
 
-                if (handleClientConn(clientSocket, clientAddr, intPortOfClient) < 0)
+                if (handleClientConn(clientSocket, clientAddr, intPortOfClient, path) < 0)
                     printf("Error: cleaning everything\n");
                 else
                     printf("Shutdown and close connection\n\n");
@@ -177,7 +181,9 @@ int main(int argc, char *argv[])
         
         }
     }
+
     sem_destroy(&sem);
+    fclose(logFile);
     shutdown(sockfd, SHUT_RDWR);
     close(sockfd);
     exit(EXIT_SUCCESS);
