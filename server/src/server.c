@@ -2,12 +2,11 @@
 
 extern sem_t sem;
 extern int sockfd;
-extern FILE * logFile;
 extern pid_t PPID;
+extern char pathToFile[MAX_PATH], logPath[MAX_PATH];
 
 int main(int argc, char *argv[])
 {
-    char LOGPATH[1024];
     int PORT;
     struct sockaddr_in server, client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
@@ -18,21 +17,21 @@ int main(int argc, char *argv[])
     if (argc == 1)
     {
         // Read default values from config server file
-        if (readConfFile(&PORT, LOGPATH) < 0)
+        if (readConfFile(&PORT, logPath) < 0)
             exit(EXIT_FAILURE);
         
     }
     else if (argc == 3) // Values passed from command line
     {
         PORT = atoi(argv[1]);
-        strcpy(LOGPATH, "../../");
-        strcat(LOGPATH, argv[2]);
+        strcpy(logPath, "../../");
+        strcat(logPath, argv[2]);
         printf("Listening port: %d\n", PORT);
-        if (createDir(LOGPATH) < 0)
+        if (createDir(logPath) < 0)
         {
             exit(EXIT_FAILURE);
         }
-        printf("Log file path: %s\n", LOGPATH);
+        printf("Log file path: %s\n", logPath);
     }
     else if (argc == 2)
     {
@@ -76,36 +75,25 @@ int main(int argc, char *argv[])
     
     // Install SIGINT signal: manage ctrl+c action by handler function
     signal(SIGINT, handler);
-    // Install SIGUSR1 signal: manage the case when file has exceeded the threshold in terms of characters
-    // signal(SIGUSR1, handler);
-    char path[1024];
-    strcpy(path, LOGPATH);
-    strcat(path, "/");
+    signal(SIGUSR1, handler);
+    
+    strcpy(pathToFile, logPath);
+    strcat(pathToFile, "/");
 
-    int numFile = countFilesInDirectory(path);
+    int numFile = countFilesInDirectory(pathToFile);
     // If there are zero files, i will create the first
     if (numFile == 0){
-        createNewFilename(path);      
+        createNewFilename(pathToFile);      
     }else if (numFile <= NUM_LOGFILES){ 
         // If there is at least one file, i will open the most recently used 
         // This function will fill path with the name of the latest file used
-        findLastModifiedFile(path);
+        findLastModifiedFile(pathToFile);
     }
-    
-    // I created FILE *log globally because i want to make it usable in sigint handler function
-    // I get the file descriptor by the parent process because every child process created will inherits this file descriptor
-    logFile = fopen(path, "a");
-    if (logFile == NULL){
-        printf("Error opening file\n");
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
 
     printf("-------------------------------\n");
     printf("| Server started successfully |\n");
     printf("-------------------------------\n");
+
     // Get current time
     time_t currentTime;
     time(&currentTime);
@@ -113,12 +101,10 @@ int main(int argc, char *argv[])
     char *timeString = ctime(&currentTime);
     printf("\nDate and time: %s\n",timeString);
     
-    printf("\nLOGPATH %s\nPATH %s\n",LOGPATH, path);
 
     // Unamed semaphore
     if (sem_init(&sem,0,1)  == -1){
         printf("Error initializing semaphore\n");
-        fclose(logFile);
         shutdown(sockfd, SHUT_RDWR);
         close(sockfd);
         exit(EXIT_FAILURE);
@@ -160,14 +146,13 @@ int main(int argc, char *argv[])
                 // Close the socket created by server to save resources
                 close(sockfd);
 
-                
-                if (handleClientConn(clientSocket, clientAddr, intPortOfClient, LOGPATH, path) < 0)
+                if (handleClientConn(clientSocket, clientAddr, intPortOfClient) < 0)
                     printf("Error: cleaning everything\n");
                 else
                     printf("Shutdown and close connection\n\n");
                 
                 sem_close(&sem);
-                fclose(logFile);
+                //fclose(logFile);
                 shutdown(clientSocket, SHUT_RDWR);
                 close(clientSocket);
                 exit(EXIT_SUCCESS);
@@ -177,7 +162,6 @@ int main(int argc, char *argv[])
     }
 
     sem_destroy(&sem);
-    fclose(logFile);
     shutdown(sockfd, SHUT_RDWR);
     close(sockfd);
     exit(EXIT_SUCCESS);
