@@ -81,19 +81,11 @@ int main(int argc, char *argv[])
     char path[1024];
     strcpy(path, LOGPATH);
     strcat(path, "/");
-    
+
     int numFile = countFilesInDirectory(path);
     // If there are zero files, i will create the first
     if (numFile == 0){
-        printf("Debug before %s\n", path);
-        createNewFilename(path);
-        printf("Debug after %s\n", path);
-        getchar();
-        // 1) All'accensione del server se non ci sono log file crearne uno e scrivere su quello altrimenti scrivere sul piu` recente su cui e` stato scritto
-        
-        // 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
-
-        
+        createNewFilename(path);      
     }else if (numFile <= NUM_LOGFILES){ 
         // If there is at least one file, i will open the most recently used 
         // This function will fill path with the name of the latest file used
@@ -110,7 +102,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    
+
     printf("-------------------------------\n");
     printf("| Server started successfully |\n");
     printf("-------------------------------\n");
@@ -121,6 +113,8 @@ int main(int argc, char *argv[])
     char *timeString = ctime(&currentTime);
     printf("\nDate and time: %s\n",timeString);
     
+    printf("\nLOGPATH %s\nPATH %s\n",LOGPATH, path);
+
     // Unamed semaphore
     if (sem_init(&sem,0,1)  == -1){
         printf("Error initializing semaphore\n");
@@ -166,8 +160,8 @@ int main(int argc, char *argv[])
                 // Close the socket created by server to save resources
                 close(sockfd);
 
-
-                if (handleClientConn(clientSocket, clientAddr, intPortOfClient, path) < 0)
+                
+                if (handleClientConn(clientSocket, clientAddr, intPortOfClient, LOGPATH, path) < 0)
                     printf("Error: cleaning everything\n");
                 else
                     printf("Shutdown and close connection\n\n");

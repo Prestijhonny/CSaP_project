@@ -25,13 +25,14 @@ pid_t PPID;
 
 void createNewFilename(char path[]);
 void handler(int signo);
-void checkFile(char logPath[], char out[2048]);
+void checkFile(char logPath[], char pathToFile[], char out[2048]);
 void findLastModifiedFile(char *path);
 int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
 int countFilesInDirectory(char *path);
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[]);
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[], char path[]);
 int countNumberOfCharacters(char path[]);
+char *findLeastRecentlyFile(char *directory_path);
 
 void createNewFilename(char path[])
 {
@@ -46,7 +47,7 @@ void createNewFilename(char path[])
     strcat(path, nameFile);
 }
 
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[])
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[], char pathToFile[])
 {
 
     while (TRUE)
@@ -92,31 +93,93 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, c
 
         sem_wait(&sem);
 
-        checkFile(logPath, out);
+        checkFile(logPath, pathToFile, out);
 
         sem_post(&sem);
     }
 }
 
-void checkFile(char logPath[], char out[])
+// 1) All'accensione del server se non ci sono log file crearne uno e scrivere su quello altrimenti scrivere sul piu` recente su cui e` stato scritto
+
+// 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
+
+void checkFile(char logPath[], char pathToFile[], char out[])
 {
     int numberOfCharaters = countNumberOfCharacters(logPath);
     // If the file has exceeded the threshold in terms of characters
     if (numberOfCharaters >= LOGFILE_THRESHOLD)
     {
-        // Also if the number of files reached the max number of logfile, i create a new file and delete the oldest one
-        if (countFilesInDirectory(logPath) == NUM_LOGFILES)
+        // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
+        if (countFilesInDirectory(pathToFile) == NUM_LOGFILES)
         {
+            char *fileToDelete = findLeastRecentlyFile(pathToFile);
+            if (remove(fileToDelete) == 0)
+                printf("File '%s' deleted successfully.\n", fileToDelete);
+            else
+                printf("Error deleting file\n");
         }
-        else
+        // Create and write on a new log file
+        char pathToNewFile[1024];
+        strcpy(pathToNewFile, logPath);
+        createNewFilename(pathToNewFile);
+        // Closing old file descriptor
+        fclose(logFile);
+        logFile = fopen(pathToNewFile, "a");
+        if (logFile == NULL)
         {
+            printf("Error opening file\n");
+            shutdown(sockfd, SHUT_RDWR);
+            close(sockfd);
+            exit(EXIT_FAILURE);
         }
+
     }
-    else
+    
+    write(fileno(logFile), out, strlen(out));
+}
+
+char *findLeastRecentlyFile(char *directory_path)
+{
+    DIR *dir = opendir(directory_path);
+
+    if (dir == NULL)
     {
-        // The file has not exceeded the threshold in terms of characters, so i just write on that file
-        write(fileno(logFile), out, strlen(out));
+        printf("Error opening directory");
+        return NULL;
     }
+
+    time_t lessRecently = time(NULL);
+    char *lessRecentlyFile = NULL;
+
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        {
+
+            char file_path[1024];
+            snprintf(file_path, sizeof(file_path), "%s/%s", directory_path, entry->d_name);
+
+            struct stat file_stat;
+            if (stat(file_path, &file_stat) == 0)
+            {
+                if (file_stat.st_mtime < lessRecently)
+                {
+                    lessRecently = file_stat.st_mtime;
+                    if (lessRecentlyFile != NULL)
+                        free(lessRecentlyFile);
+
+                    lessRecentlyFile = strdup(file_path);
+                }
+            }
+            else
+                printf("Error getting file information");
+        }
+    }
+
+    closedir(dir);
+    return lessRecentlyFile;
 }
 
 // Handler for SIGINT signal
