@@ -42,7 +42,7 @@ FILE * getFileDescriptor(int sizeOfMessage);
 void registerServerShutdown()
 {
     sem_wait(&sem);
-    char shutdownServer[] = "The server is shutting down\n";
+    char shutdownServer[] = "The server is shutting down\n\n";
     FILE *fp = getFileDescriptor(strlen(shutdownServer));
     write(fileno(fp), shutdownServer, sizeof(shutdownServer));
     fclose(fp);
@@ -112,11 +112,12 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 
         strcat(outMessage, message);
         strcat(outMessage, "\n");
+        strcat(outMessage, '\0');
 
         sem_wait(&sem);
         // I use this feature via semaphore, so i'm sure processes access the file one at a time
         logFile = getFileDescriptor(strlen(outMessage));
-        write(fileno(logFile),outMessage,sizeof(outMessage));
+        write(fileno(logFile), outMessage, strlen(outMessage));
         fclose(logFile);
         sem_post(&sem);
     }
@@ -141,7 +142,6 @@ FILE * getFileDescriptor(int sizeOfMessage)
         // Number of characters of the message to send
         // If the number of characters written on logfile and the size of message are less or equal than LOGFILE_THRESHOLD 
         // then the message can be written to the log file, otherwise, a new log file will simply be created
-        printf ("SizeOfMessage %d\n\n", sizeOfMessage);
         if ((numberOfCharacters + sizeOfMessage) > LOGFILE_THRESHOLD)
         {
             // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
