@@ -3,10 +3,10 @@
 extern sem_t sem;
 extern int sockfd;
 extern pid_t PPID;
+extern char pathToFile[MAX_PATH], logPath[MAX_PATH];
 
 int main(int argc, char *argv[])
 {
-    char LOGPATH[1024];
     int PORT;
     struct sockaddr_in server, client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
@@ -17,21 +17,21 @@ int main(int argc, char *argv[])
     if (argc == 1)
     {
         // Read default values from config server file
-        if (readConfFile(&PORT, LOGPATH) < 0)
+        if (readConfFile(&PORT, logPath) < 0)
             exit(EXIT_FAILURE);
         
     }
     else if (argc == 3) // Values passed from command line
     {
         PORT = atoi(argv[1]);
-        strcpy(LOGPATH, "../../");
-        strcat(LOGPATH, argv[2]);
+        strcpy(logPath, "../../");
+        strcat(logPath, argv[2]);
         printf("Listening port: %d\n", PORT);
-        if (createDir(LOGPATH) < 0)
+        if (createDir(logPath) < 0)
         {
             exit(EXIT_FAILURE);
         }
-        printf("Log file path: %s\n", LOGPATH);
+        printf("Log file path: %s\n", logPath);
     }
     else if (argc == 2)
     {
@@ -75,10 +75,28 @@ int main(int argc, char *argv[])
     
     // Install SIGINT signal: manage ctrl+c action by handler function
     signal(SIGINT, handler);
+<<<<<<< HEAD
+=======
+    signal(SIGUSR1, handler);
+    
+    strcpy(pathToFile, logPath);
+    strcat(pathToFile, "/");
+
+    int numFile = countFilesInDirectory(pathToFile);
+    // If there are zero files, i will create the first
+    if (numFile == 0){
+        createNewFilename(pathToFile);      
+    }else if (numFile <= NUM_LOGFILES){ 
+        // If there is at least one file, i will open the most recently used 
+        // This function will fill path with the name of the latest file used
+        findLastModifiedFile(pathToFile);
+    }
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 
     printf("-------------------------------\n");
     printf("| Server started successfully |\n");
     printf("-------------------------------\n");
+
     // Get current time
     time_t currentTime;
     time(&currentTime);
@@ -130,13 +148,22 @@ int main(int argc, char *argv[])
                 // Child process
                 // Close the socket created by server to save resources
                 close(sockfd);
+<<<<<<< HEAD
                 
                 if (handleClientConn(clientSocket, clientAddr, intPortOfClient, LOGPATH) < 0)
+=======
+
+                if (handleClientConn(clientSocket, clientAddr, intPortOfClient) < 0)
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
                     printf("Error: cleaning everything\n");
                 else
                     printf("Shutdown and close connection\n\n");
                 
                 sem_close(&sem);
+<<<<<<< HEAD
+=======
+                //fclose(logFile);
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
                 shutdown(clientSocket, SHUT_RDWR);
                 close(clientSocket);
                 exit(EXIT_SUCCESS);

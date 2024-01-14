@@ -16,24 +16,37 @@
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server"
 #define LOGFILE_THRESHOLD 1024
+<<<<<<< HEAD
 #define MAX_LEN 1024
+=======
+#define MAX_PATH 1024
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 #define NUM_LOGFILES 5
 
 sem_t sem;
 int sockfd;
-FILE *logFile;
 pid_t PPID;
+char pathToFile[MAX_PATH], logPath[MAX_PATH];
 
 void createNewFilename(char path[]);
 void handler(int signo);
+<<<<<<< HEAD
 void checkFile(const char logPath[], char out[2048]);
+=======
+void checkFile(char out[2048]);
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 void findLastModifiedFile(char *path);
 int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
 int countFilesInDirectory(char *path);
+<<<<<<< HEAD
 int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[]);
+=======
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient);
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 int countNumberOfCharacters(char path[]);
 char *findLeastRecentlyFile(char *directory_path);
+
 
 void createNewFilename(char path[])
 {
@@ -44,12 +57,20 @@ void createNewFilename(char path[])
     timeinfo = localtime(&rawtime);
     // Format the date and time
     strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
+<<<<<<< HEAD
     memset(path,0, sizeof(path));
+=======
+    strcat(path, "/");
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
     strcat(path, LOG);
     strcat(path, nameFile);
 }
 
+<<<<<<< HEAD
 int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[])
+=======
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 {
 
     while (TRUE)
@@ -71,19 +92,17 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, c
         strcat(logAddress, portClient);
         strcat(out, logAddress);
         strcat(out, "\n");
-        char message[1024];
+        char message[MAX_PATH];
         strcat(out, "Client message: ");
         // Clean message string VERY IMPORTANT to make it works correctly
         memset(message, 0, sizeof(message));
-        // Number of bytes received from clien socket and store it in message string
+        // Number of bytes received from client socket and store it in message string
         ssize_t bytesReceived = recv(clientSocket, message, sizeof(message), 0);
         // Handling recv error
-        if (bytesReceived == -1)
-        {
+        if (bytesReceived == -1){
             printf("Error to receive data from socket\n");
             return -1;
-        }
-        else if (bytesReceived == 0)
+        }else if (bytesReceived == 0)
         {
             // It means that the client has disconnected
             printf("The client %s:%d has disconnected\n", clientAddr, intPortOfClient);
@@ -95,12 +114,17 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, c
 
         sem_wait(&sem);
 
+<<<<<<< HEAD
         checkFile(logPath, out);
+=======
+        checkFile(out);
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 
         sem_post(&sem);
     }
 }
 
+<<<<<<< HEAD
 void checkFile(const char logPath[], char out[])
 {
     int numFile = countFilesInDirectory(logPath);
@@ -128,6 +152,33 @@ void checkFile(const char logPath[], char out[])
                     printf("Error deleting file\n");
             }
             createNewFilename(pathToNewFile);
+=======
+
+// Function to write on logfile, it checks for threshold
+void checkFile(char out[])
+{
+    int numberOfCharaters = countNumberOfCharacters(logPath);
+    FILE *logFile;
+    // If the file has exceeded the threshold in terms of characters
+    if (numberOfCharaters >= LOGFILE_THRESHOLD)
+    {
+        // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
+        if (countFilesInDirectory(logPath) == NUM_LOGFILES)
+        {
+            char *fileToDelete = findLeastRecentlyFile(pathToFile);
+            if (remove(fileToDelete) == 0)
+                printf("File '%s' deleted successfully.\n", fileToDelete);
+            else
+                printf("Error deleting file\n");
+        }
+
+        logFile = fopen(pathToFile, "a");
+        if (logFile == NULL){
+            printf("Error opening file\n");
+            shutdown(sockfd, SHUT_RDWR);
+            close(sockfd);
+            exit(EXIT_FAILURE);
+>>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
         }
     }
 
@@ -162,7 +213,7 @@ char *findLeastRecentlyFile(char *directory_path)
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
         {
 
-            char file_path[1024];
+            char file_path[MAX_PATH];
             snprintf(file_path, sizeof(file_path), "%s/%s", directory_path, entry->d_name);
 
             struct stat file_stat;
@@ -186,7 +237,7 @@ char *findLeastRecentlyFile(char *directory_path)
     return lessRecentlyFile;
 }
 
-// Handler for SIGINT signal
+// Handler for SIGINT e SIGUSR1 signal
 void handler(int signo)
 {
     if (signo == SIGINT)
@@ -200,17 +251,14 @@ void handler(int signo)
             sem_destroy(&sem);
         }
 
-        if (logFile != NULL)
-            fclose(logFile);
+        /*if (logFile != NULL)
+            fclose(logFile);*/
 
         shutdown(sockfd, SHUT_RDWR);
         close(sockfd);
         exit(EXIT_SUCCESS);
     }
-    else if (signo == SIGUSR1)
-    {
-        // Try to manage the case when the file has exceeded the threshold in terms of characters
-    }
+
 }
 
 // Read data from conf file when server starts
@@ -292,6 +340,7 @@ void findLastModifiedFile(char *path)
     }
 
     strcat(path, latestModFileName);
+    
     closedir(dir);
 }
 
@@ -307,7 +356,7 @@ int countFilesInDirectory(char *path)
     // Check if the directory was successfully opened
     if (dir == NULL)
     {
-        perror("Unable to open directory");
+        printf("Unable to open directory");
         exit(EXIT_FAILURE);
     }
 
@@ -327,9 +376,8 @@ int countFilesInDirectory(char *path)
 int countNumberOfCharacters(char path[])
 {
     FILE *fp = fopen(path, "r");
-    if (fp == NULL)
-    {
-        printf("Error to open file for checking number of characters\n");
+    if (fp == NULL){
+        printf("Error to open file\n");
         return -1;
     }
     // Positioning the pointer at end of file
@@ -338,7 +386,5 @@ int countNumberOfCharacters(char path[])
     int numberOfCharaters = ftell(fp);
     // Positioning the pointer at start of file
     fseek(fp, 0, SEEK_SET);
-
-    fclose(fp);
     return numberOfCharaters;
 }
