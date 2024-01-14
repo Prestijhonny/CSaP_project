@@ -285,7 +285,7 @@ void findLastModifiedFile(char *path)
             }
         }
     }
-
+    strcat(path, "/");
     strcat(path, latestModFileName);
     
     closedir(dir);
