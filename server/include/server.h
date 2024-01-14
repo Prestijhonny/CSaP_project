@@ -45,8 +45,8 @@ void createNewFilename(char path[])
     timeinfo = localtime(&rawtime);
     // Format the date and time
     strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
-    strcat(path, LOG);
     strcat(path, "/");
+    strcat(path, LOG);
     strcat(path, nameFile);
 }
 
@@ -105,7 +105,7 @@ void checkFile(char logPath[], char out[])
     int numFile = countFilesInDirectory(logPath);
     char pathToNewFile[MAX_PATH];
     // I use pathToNewFile as a placeholder for path to the file
-    strcpy(pathToNewFile, logPath);
+    strcpy(pathToNewFile, logPath); 
     // If there are zero files, i will create the first
     if (numFile == 0){
         createNewFilename(pathToNewFile);
@@ -129,7 +129,6 @@ void checkFile(char logPath[], char out[])
             createNewFilename(pathToNewFile);
         }
     }
-
     logFile = fopen(pathToNewFile, "a");
     if (logFile == NULL){
         printf("Error opening file\n");
