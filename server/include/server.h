@@ -26,7 +26,7 @@ FILE *logFile;
 
 void createNewFilename(char path[]);
 void handler(int signo);
-void checkFile(const char logPath[], char out[]);
+void checkFile(char logPath[], char out[]);
 void findLastModifiedFile(char *path);
 int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
@@ -99,7 +99,7 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, c
     }
 }
 
-void checkFile(const char logPath[], char out[])
+void checkFile(char logPath[], char out[])
 {
     int numFile = countFilesInDirectory(logPath);
     char pathToNewFile[MAX_PATH];
