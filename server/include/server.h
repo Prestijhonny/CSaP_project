@@ -106,6 +106,7 @@ void checkFile(char logPath[], char out[])
     char pathToNewFile[MAX_PATH];
     // I use pathToNewFile as a placeholder for path to the file
     strcpy(pathToNewFile, logPath); 
+    printf("DEBUG before pathToNewFile %s\n",pathToNewFile);
     // If there are zero files, i will create the first
     if (numFile == 0){
         createNewFilename(pathToNewFile);
@@ -129,7 +130,7 @@ void checkFile(char logPath[], char out[])
             createNewFilename(pathToNewFile);
         }
     }
-    printf("DEBUG pathToNewFile %s\n",pathToNewFile);
+    printf("DEBUG after pathToNewFile %s\n",pathToNewFile);
     logFile = fopen(pathToNewFile, "a");
     if (logFile == NULL){
         printf("Error opening file\n");
