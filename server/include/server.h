@@ -129,6 +129,7 @@ void checkFile(char logPath[], char out[])
             createNewFilename(pathToNewFile);
         }
     }
+    printf("DEBUG pathToNewFile %s\n",pathToNewFile);
     logFile = fopen(pathToNewFile, "a");
     if (logFile == NULL){
         printf("Error opening file\n");
