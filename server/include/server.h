@@ -123,6 +123,7 @@ void checkFile(char logPath[], char out[])
             if (countFilesInDirectory(logPath) == NUM_LOGFILES)
             {
                 char *fileToDelete = findLeastRecentlyFile(logPath);
+                printf("File to remove %s\n",fileToDelete);
                 if (remove(fileToDelete) == 0)
                     printf("File '%s' deleted successfully.\n", fileToDelete);
                 else
