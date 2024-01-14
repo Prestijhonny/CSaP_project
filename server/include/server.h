@@ -42,7 +42,14 @@ FILE * getFileDescriptor(int sizeOfMessage);
 void registerServerShutdown()
 {
     sem_wait(&sem);
-    char shutdownServer[] = "The server is shutting down\n\n";
+    char shutdownServer[96] = "The server is shutting down at ";
+    // Get current time
+    time_t currentTime;
+    time(&currentTime);
+    // Convert time to string representation
+    char *timeString = ctime(&currentTime);
+    strcat(shutdownServer, timeString);
+    strcat(shutdownServer, "\n\n");
     FILE *fp = getFileDescriptor(strlen(shutdownServer));
     write(fileno(fp), shutdownServer, sizeof(shutdownServer));
     fclose(fp);
