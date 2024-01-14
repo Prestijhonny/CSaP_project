@@ -34,17 +34,3 @@ Client address: 127.0.0.1
 Client message: o sciamunitu
 
 
-Sun Jan  7 18:33:44 2024
-Client address: 127.0.0.1
-Client message: o sciamunitu
-
-
-Sun Jan  7 18:33:44 2024
-Client address: 127.0.0.1
-Client message: o sciamunitu
-
-Sun Jan 14 11:48:27 2024
-Client address: 127.0.0.1:34790
-Client message: Ciao
-
-
