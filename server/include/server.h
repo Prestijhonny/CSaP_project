@@ -16,34 +16,22 @@
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server"
 #define LOGFILE_THRESHOLD 1024
-<<<<<<< HEAD
-#define MAX_LEN 1024
-=======
 #define MAX_PATH 1024
->>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 #define NUM_LOGFILES 5
 
 sem_t sem;
 int sockfd;
 pid_t PPID;
-char pathToFile[MAX_PATH], logPath[MAX_PATH];
+FILE *logFile;
 
 void createNewFilename(char path[]);
 void handler(int signo);
-<<<<<<< HEAD
-void checkFile(const char logPath[], char out[2048]);
-=======
-void checkFile(char out[2048]);
->>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
+void checkFile(const char logPath[], char out[]);
 void findLastModifiedFile(char *path);
 int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
 int countFilesInDirectory(char *path);
-<<<<<<< HEAD
 int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[]);
-=======
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient);
->>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 int countNumberOfCharacters(char path[]);
 char *findLeastRecentlyFile(char *directory_path);
 
@@ -57,20 +45,12 @@ void createNewFilename(char path[])
     timeinfo = localtime(&rawtime);
     // Format the date and time
     strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
-<<<<<<< HEAD
     memset(path,0, sizeof(path));
-=======
-    strcat(path, "/");
->>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
     strcat(path, LOG);
     strcat(path, nameFile);
 }
 
-<<<<<<< HEAD
 int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[])
-=======
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
->>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 {
 
     while (TRUE)
@@ -114,21 +94,16 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 
         sem_wait(&sem);
 
-<<<<<<< HEAD
         checkFile(logPath, out);
-=======
-        checkFile(out);
->>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
 
         sem_post(&sem);
     }
 }
 
-<<<<<<< HEAD
 void checkFile(const char logPath[], char out[])
 {
     int numFile = countFilesInDirectory(logPath);
-    char pathToNewFile[MAX_LEN];
+    char pathToNewFile[MAX_PATH];
     // I use pathToNewFile as a placeholder for path to the file
     strcpy(pathToNewFile, logPath);
     // If there are zero files, i will create the first
@@ -152,33 +127,6 @@ void checkFile(const char logPath[], char out[])
                     printf("Error deleting file\n");
             }
             createNewFilename(pathToNewFile);
-=======
-
-// Function to write on logfile, it checks for threshold
-void checkFile(char out[])
-{
-    int numberOfCharaters = countNumberOfCharacters(logPath);
-    FILE *logFile;
-    // If the file has exceeded the threshold in terms of characters
-    if (numberOfCharaters >= LOGFILE_THRESHOLD)
-    {
-        // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
-        if (countFilesInDirectory(logPath) == NUM_LOGFILES)
-        {
-            char *fileToDelete = findLeastRecentlyFile(pathToFile);
-            if (remove(fileToDelete) == 0)
-                printf("File '%s' deleted successfully.\n", fileToDelete);
-            else
-                printf("Error deleting file\n");
-        }
-
-        logFile = fopen(pathToFile, "a");
-        if (logFile == NULL){
-            printf("Error opening file\n");
-            shutdown(sockfd, SHUT_RDWR);
-            close(sockfd);
-            exit(EXIT_FAILURE);
->>>>>>> 4c7c9d4b7be559792f7a5579915a2c21ca0699a1
         }
     }
 
