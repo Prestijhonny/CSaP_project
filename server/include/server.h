@@ -15,7 +15,7 @@
 #define TRUE 1
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server"
-#define LOGFILE_THRESHOLD 1024
+#define LOGFILE_THRESHOLD 100
 #define MAX_PATH 1024
 #define NUM_LOGFILES 5
 
@@ -114,9 +114,11 @@ void checkFile(char logPath[], char out[])
         // This function will fill path with the name of the latest file used
         findLastModifiedFile(pathToNewFile);
         int numberOfCharacters = countNumberOfCharacters(pathToNewFile);
+        printf("numberOfCharacters of file %s is %d\n",pathToNewFile, numberOfCharacters);
         // If the file has exceeded the threshold in terms of characters
         if (numberOfCharacters >= LOGFILE_THRESHOLD)
         {
+            printf("Entrato nella condizione numberOfCharacters >= LOGFILE_THRESHOLD\n");
             // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
             if (countFilesInDirectory(logPath) == NUM_LOGFILES)
             {
@@ -127,7 +129,9 @@ void checkFile(char logPath[], char out[])
                     printf("Error deleting file\n");
             }
             strcpy(pathToNewFile, logPath);
+            printf("pathToNewFile before %s\n", pathToNewFile);
             createNewFilename(pathToNewFile);
+            printf("pathToNewFile after %s\n", pathToNewFile);
         }
     }
     logFile = fopen(pathToNewFile, "a");
