@@ -40,12 +40,11 @@ void createNewFilename(char path[])
 {
     time_t rawtime;
     struct tm *timeinfo;
-    char nameFile[80];
+    char nameFile[MAXNAMLEN];
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     // Format the date and time
     strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
-    memset(path,0, sizeof(path));
     strcat(path, LOG);
     strcat(path, nameFile);
 }
