@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
                 char tmp [128];
                 snprintf(tmp,sizeof(tmp), "%s:%d", clientAddr, intPortOfClient);
                 strcat(acceptedClient, tmp);
-                printf ("\nAccepted Client %s \n\n", acceptedClient);
+                strcat(acceptedClient, "\n");
                 FILE *fp = getFileDescriptor(strlen(acceptedClient));
                 write(fileno(fp),acceptedClient,sizeof(acceptedClient));
                 fclose(fp);
