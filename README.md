@@ -1,4 +1,4 @@
-Log Server Implementation
+# Log Server Implementation
 
 ## Project Description
 
