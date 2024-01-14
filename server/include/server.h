@@ -15,26 +15,38 @@
 #define TRUE 1
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server"
-#define LOGFILE_THRESHOLD 100
+#define LOGFILE_THRESHOLD 256
 #define MAX_PATH 1024
 #define NUM_LOGFILES 5
 
 sem_t sem;
-int sockfd;
+int sockfd, clientSocket;
 pid_t PPID;
 FILE *logFile;
+char LOGPATH[MAX_PATH];
 
 void createNewFilename(char path[]);
 void handler(int signo);
-void checkFile(char logPath[], char out[]);
+void registerServerShutdown();
 void findLastModifiedFile(char *path);
-int readConfFile(int *PORT, char LOGPATH[]);
-int createDir(char LOGPATH[]);
+int readConfFile(int *PORT);
+int createDir();
 int countFilesInDirectory(char *path);
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[]);
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient);
 int countNumberOfCharacters(char path[]);
 char *findLeastRecentlyFile(char *directory_path);
+FILE * getFileDescriptor(int sizeOfMessage);
 
+
+void registerServerShutdown()
+{
+    sem_wait(&sem);
+    char shutdownServer[] = "The server is shutting down\n";
+    FILE *fp = getFileDescriptor(strlen(shutdownServer));
+    write(fileno(fp), shutdownServer, sizeof(shutdownServer));
+    fclose(fp);
+    sem_post(&sem);
+}
 
 void createNewFilename(char path[])
 {
@@ -50,31 +62,31 @@ void createNewFilename(char path[])
     strcat(path, nameFile);
 }
 
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[])
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 {
-
     while (TRUE)
     {
-        char out[2048];
-        memset(out, 0, sizeof(out));
+        char outMessage[2048];
+        memset(outMessage, 0, sizeof(outMessage));
         // Get current time
         time_t currentTime;
         time(&currentTime);
         // Convert time to string representation
         char *timeString = ctime(&currentTime);
-        strcpy(out, timeString);
+        strcpy(outMessage, timeString);
         char logAddress[64] = "Client address: ";
         strcat(logAddress, clientAddr);
         strcat(logAddress, ":");
         char portClient[16];
         // Convert integer to string
         snprintf(portClient, sizeof(portClient), "%d", intPortOfClient);
+
         strcat(logAddress, portClient);
-        strcat(out, logAddress);
-        strcat(out, "\n");
+        strcat(outMessage, logAddress);
+        strcat(outMessage, "\n");
+        strcat(outMessage, "Client message: ");
         char message[MAX_PATH];
-        strcat(out, "Client message: ");
-        // Clean message string VERY IMPORTANT to make it works correctly
+        // Clean message string before using it
         memset(message, 0, sizeof(message));
         // Number of bytes received from client socket and store it in message string
         ssize_t bytesReceived = recv(clientSocket, message, sizeof(message), 0);
@@ -85,27 +97,37 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, c
         }else if (bytesReceived == 0)
         {
             // It means that the client has disconnected
-            printf("The client %s:%d has disconnected\n", clientAddr, intPortOfClient);
+            printf("The client %s:%s has disconnected\n", clientAddr, portClient);
+            sem_wait(&sem);
+            char disconnectedClient[MAX_PATH];
+            snprintf(disconnectedClient, "The client %s:%s has disconnected\n", clientAddr, portClient);
+            logFile = getFileDescriptor(strlen(disconnectedClient));
+            write(fileno(logFile),disconnectedClient,sizeof(disconnectedClient));
+            fclose(logFile);
+            sem_post(&sem);
+            
             return 0;
         }
 
-        strcat(out, message);
-        strcat(out, "\n");
+        strcat(outMessage, message);
+        strcat(outMessage, "\n");
 
         sem_wait(&sem);
-
-        checkFile(logPath, out);
-
+        // I use this feature via semaphore, so i'm sure processes access the file one at a time
+        logFile = getFileDescriptor(strlen(outMessage));
+        write(fileno(logFile),outMessage,sizeof(outMessage));
+        fclose(logFile);
         sem_post(&sem);
     }
 }
 
-void checkFile(char logPath[], char out[])
+FILE * getFileDescriptor(int sizeOfMessage)
 {
-    int numFile = countFilesInDirectory(logPath);
+    // Count the number of files in the log directory
+    int numFile = countFilesInDirectory(LOGPATH);
     char pathToNewFile[MAX_PATH];
     // I use pathToNewFile as a placeholder for path to the file
-    strcpy(pathToNewFile, logPath); 
+    strcpy(pathToNewFile, LOGPATH); 
     // If there are zero files, i will create the first
     if (numFile == 0){
         createNewFilename(pathToNewFile);
@@ -113,37 +135,34 @@ void checkFile(char logPath[], char out[])
         // If there is at least one file, i will open the most recently used
         // This function will fill path with the name of the latest file used
         findLastModifiedFile(pathToNewFile);
+        // Counts number of characters in the last modified file
         int numberOfCharacters = countNumberOfCharacters(pathToNewFile);
-        printf("numberOfCharacters of file %s is %d\n",pathToNewFile, numberOfCharacters);
-        // If the file has exceeded the threshold in terms of characters
-        if (numberOfCharacters >= LOGFILE_THRESHOLD)
+        // Number of characters of the message to send
+        // If the number of characters written on logfile and the size of message are less or equal than LOGFILE_THRESHOLD 
+        // then the message can be written to the log file, otherwise, a new log file will simply be created
+        if ((numberOfCharacters + sizeOfMessage) > LOGFILE_THRESHOLD)
         {
-            printf("Entrato nella condizione numberOfCharacters >= LOGFILE_THRESHOLD\n");
             // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
-            if (countFilesInDirectory(logPath) == NUM_LOGFILES)
+            if (countFilesInDirectory(LOGPATH) == NUM_LOGFILES)
             {
-                char *fileToDelete = findLeastRecentlyFile(logPath);
-                printf("File to remove %s\n",fileToDelete);
-                if (remove(fileToDelete) == 0)
-                    printf("File '%s' deleted successfully.\n", fileToDelete);
-                else
-                    printf("Error deleting file\n");
+                char *fileToDelete = findLeastRecentlyFile(LOGPATH);
+                if (remove(fileToDelete) != 0)
+                    printf("Error deleting last log file\n");
             }
-            strcpy(pathToNewFile, logPath);
-            printf("pathToNewFile before %s\n", pathToNewFile);
+            // Use this strcpy to make sure pathToNewFile contains the log path so it will be filled by the name of the new logfile
+            strcpy(pathToNewFile, LOGPATH);
             createNewFilename(pathToNewFile);
-            printf("pathToNewFile after %s\n", pathToNewFile);
         }
     }
-    logFile = fopen(pathToNewFile, "a");
-    if (logFile == NULL){
+    // Open the log file for append
+    FILE * lf = fopen(pathToNewFile, "a");
+    if (lf == NULL){
         printf("Error opening file\n");
         shutdown(sockfd, SHUT_RDWR);
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-    write(fileno(logFile), out, strlen(out));
-    fclose(logFile);
+    return lf;
 }
 
 char *findLeastRecentlyFile(char *directory_path)
@@ -190,32 +209,46 @@ char *findLeastRecentlyFile(char *directory_path)
     return lessRecentlyFile;
 }
 
-// Handler for SIGINT e SIGUSR1 signal
 void handler(int signo)
 {
+    // Handler for SIGINT signal
     if (signo == SIGINT)
     {
-        fflush(stdin);
-        sem_close(&sem);
         // Only parent process use this code
-        if (getpid() == PPID)
-        {
+        if (getpid() == PPID){
             printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
+            registerServerShutdown();
+            // Child processes closed the sockfd at beginning
+            sem_close(&sem);
             sem_destroy(&sem);
+            shutdown(sockfd, SHUT_RDWR);
+            close(sockfd);
+            // Wait until there aren't more child processes
+            while (wait(NULL) != -1);
+            exit(EXIT_SUCCESS);
+        }else{
+            // Child process
+            if (logFile != NULL){
+            // This flag help me to understand if the file is opened by the calling process
+            int flag = fcntl(fileno(logFile), F_GETFL);
+            // If the file is opened in append mode, then close the file descriptor, otherwise, it means that the file descriptor is already closed
+            if (flag & O_APPEND) 
+                fclose(logFile);
+            }
+
+            sem_close(&sem);
+            sem_destroy(&sem);
+            shutdown(sockfd, SHUT_RDWR);
+            shutdown(clientSocket, SHUT_RDWR);
+            close(clientSocket);
+            exit(EXIT_SUCCESS);
         }
-
-        /*if (logFile != NULL)
-            fclose(logFile);*/
-
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
-        exit(EXIT_SUCCESS);
     }
 
 }
 
 // Read data from conf file when server starts
-int readConfFile(int *PORT, char LOGPATH[])
+int readConfFile(int *PORT)
 {
     FILE *fp = fopen(CONFIG_PATH, "r");
     if (fp == NULL)
@@ -235,7 +268,7 @@ int readConfFile(int *PORT, char LOGPATH[])
     return 0;
 }
 
-int createDir(char LOGPATH[])
+int createDir()
 {
     // If LOGPATH does not exists then create it
     struct stat st;
@@ -258,7 +291,7 @@ void findLastModifiedFile(char *path)
     struct dirent *entry;
     struct stat fileStat;
     time_t latestModTime = 0;
-    char latestModFileName[256] = "";
+    char latestModFileName[MAX_PATH];
     int nFile = 0;
     dir = opendir(path);
 
@@ -267,25 +300,23 @@ void findLastModifiedFile(char *path)
         printf("Error opening directory\n");
         exit(EXIT_FAILURE);
     }
-
+    // Read the entry of the dir
     while ((entry = readdir(dir)) != NULL)
     {
 
         char filePath[512];
+        // Create the file path with the name of the file found
         snprintf(filePath, sizeof(filePath), "%s/%s", path, entry->d_name);
+        // If the file is not equal to current dir "." or parent dir ".." then analayze the file 
         if ((strcmp(entry->d_name, ".") != 0) && (strcmp(entry->d_name, "..") != 0))
         {
 
-            if (stat(filePath, &fileStat) == 0)
-            {
-                if (fileStat.st_mtime > latestModTime)
-                {
+            if (stat(filePath, &fileStat) == 0){
+                if (fileStat.st_mtime > latestModTime){
                     latestModTime = fileStat.st_mtime;
-                    strncpy(latestModFileName, entry->d_name, sizeof(latestModFileName));
+                    strcpy(latestModFileName, entry->d_name);
                 }
-            }
-            else
-            {
+            }else{
                 printf("Error getting file information");
                 exit(EXIT_FAILURE);
             }

@@ -1,13 +1,13 @@
 #include "../include/server.h"
 
 extern sem_t sem;
-extern int sockfd;
+extern int sockfd, clientSocket;
 extern pid_t PPID;
+extern char LOGPATH[MAX_PATH];
 
 int main(int argc, char *argv[])
 {
     int PORT;
-    char LOGPATH[MAX_PATH];
     struct sockaddr_in server, client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
 
@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     if (argc == 1)
     {
         // Read default values from config server file
-        if (readConfFile(&PORT, LOGPATH) < 0)
+        if (readConfFile(&PORT) < 0)
             exit(EXIT_FAILURE);
         
     }
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
         strcpy(LOGPATH, "../../");
         strcat(LOGPATH, argv[2]);
         printf("Listening port: %d\n", PORT);
-        if (createDir(LOGPATH) < 0)
+        if (createDir() < 0)
         {
             exit(EXIT_FAILURE);
         }
@@ -96,8 +96,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Client socket where to read data
-    int clientSocket;
     while (TRUE)
     {
         // Accept function extract the first connection on the queue of pending connections
@@ -115,8 +113,7 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
             
-            int intPortOfClient = ntohs(client_addr.sin_port);
-            printf("A client has connected, accepted connection from %s:%d\n\n", clientAddr, intPortOfClient);
+           
 
             pid_t pid = fork();
 
@@ -131,8 +128,18 @@ int main(int argc, char *argv[])
                 // Child process
                 // Close the socket created by server to save resources
                 close(sockfd);
+                int intPortOfClient = ntohs(client_addr.sin_port);
+                printf("A client has connected, accepted connection from %s:%d\n\n", clientAddr, intPortOfClient);
+
+                sem_wait(&sem);
+                char acceptedClient[MAX_PATH];
+                snprintf(acceptedClient, "A client has connected, accepted connection from %s:%d\n", clientAddr, intPortOfClient);
+                FILE *fp = getFileDescriptor(strlen(acceptedClient));
+                write(fileno(fp),acceptedClient,sizeof(acceptedClient));
+                fclose(fp);
+                sem_post(&sem);
                 
-                if (handleClientConn(clientSocket, clientAddr, intPortOfClient, LOGPATH) < 0)
+                if (handleClientConn(clientSocket, clientAddr, intPortOfClient) < 0)
                     printf("Error: cleaning everything\n");
                 else
                     printf("Shutdown and close connection\n\n");
@@ -145,9 +152,9 @@ int main(int argc, char *argv[])
         
         }
     }
-
-    sem_destroy(&sem);
     shutdown(sockfd, SHUT_RDWR);
     close(sockfd);
+    registerServerShutdown(LOGPATH);
+    sem_destroy(&sem);
     exit(EXIT_SUCCESS);
 }
