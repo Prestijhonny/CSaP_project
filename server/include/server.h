@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <semaphore.h>
+#include <sys/wait.h>
 #define TRUE 1
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server"
