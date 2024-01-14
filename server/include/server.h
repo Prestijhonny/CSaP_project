@@ -16,7 +16,7 @@
 #define TRUE 1
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server"
-#define LOGFILE_THRESHOLD 256
+#define LOGFILE_THRESHOLD 1000
 #define MAX_PATH 1024
 #define NUM_LOGFILES 5
 
