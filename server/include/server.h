@@ -163,7 +163,7 @@ char *findLeastRecentlyFile(char *directory_path)
 
     while ((entry = readdir(dir)) != NULL)
     {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
         {
 
             char file_path[MAX_PATH];
