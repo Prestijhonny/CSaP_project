@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
                 memset(acceptedClient, 0, sizeof(acceptedClient));
                 strcat (acceptedClient, "A client has connected, accepted connection from ");
                 char tmp [256];
-                sprintf(tmp,sizeof(tmp), "%s:%d", clientAddr, intPortOfClient);
+                snprintf(tmp,sizeof(tmp), "%s:%d", clientAddr, intPortOfClient);
                 strcat(acceptedClient, tmp);
                 printf ("acceptedClient %s \n", acceptedClient);
                 FILE *fp = getFileDescriptor(strlen(acceptedClient));
