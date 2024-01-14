@@ -112,7 +112,6 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 
         strcat(outMessage, message);
         strcat(outMessage, "\n");
-        strcat(outMessage, '\0');
 
         sem_wait(&sem);
         // I use this feature via semaphore, so i'm sure processes access the file one at a time
