@@ -2,7 +2,6 @@
 
 extern sem_t sem;
 extern int sockfd;
-extern FILE * logFile;
 extern pid_t PPID;
 
 int main(int argc, char *argv[])
@@ -76,32 +75,6 @@ int main(int argc, char *argv[])
     
     // Install SIGINT signal: manage ctrl+c action by handler function
     signal(SIGINT, handler);
-    // Install SIGUSR1 signal: manage the case when file has exceeded the threshold in terms of characters
-    // signal(SIGUSR1, handler);
-    char path[1024];
-    strcpy(path, LOGPATH);
-    strcat(path, "/");
-
-    int numFile = countFilesInDirectory(path);
-    // If there are zero files, i will create the first
-    if (numFile == 0){
-        createNewFilename(path);      
-    }else if (numFile <= NUM_LOGFILES){ 
-        // If there is at least one file, i will open the most recently used 
-        // This function will fill path with the name of the latest file used
-        findLastModifiedFile(path);
-    }
-    
-    // I created FILE *log globally because i want to make it usable in sigint handler function
-    // I get the file descriptor by the parent process because every child process created will inherits this file descriptor
-    logFile = fopen(path, "a");
-    if (logFile == NULL){
-        printf("Error opening file\n");
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
 
     printf("-------------------------------\n");
     printf("| Server started successfully |\n");
@@ -113,12 +86,10 @@ int main(int argc, char *argv[])
     char *timeString = ctime(&currentTime);
     printf("\nDate and time: %s\n",timeString);
     
-    printf("\nLOGPATH %s\nPATH %s\n",LOGPATH, path);
 
     // Unamed semaphore
     if (sem_init(&sem,0,1)  == -1){
         printf("Error initializing semaphore\n");
-        fclose(logFile);
         shutdown(sockfd, SHUT_RDWR);
         close(sockfd);
         exit(EXIT_FAILURE);
@@ -159,15 +130,13 @@ int main(int argc, char *argv[])
                 // Child process
                 // Close the socket created by server to save resources
                 close(sockfd);
-
                 
-                if (handleClientConn(clientSocket, clientAddr, intPortOfClient, LOGPATH, path) < 0)
+                if (handleClientConn(clientSocket, clientAddr, intPortOfClient, LOGPATH) < 0)
                     printf("Error: cleaning everything\n");
                 else
                     printf("Shutdown and close connection\n\n");
                 
                 sem_close(&sem);
-                fclose(logFile);
                 shutdown(clientSocket, SHUT_RDWR);
                 close(clientSocket);
                 exit(EXIT_SUCCESS);
@@ -177,9 +146,7 @@ int main(int argc, char *argv[])
     }
 
     sem_destroy(&sem);
-    fclose(logFile);
     shutdown(sockfd, SHUT_RDWR);
     close(sockfd);
     exit(EXIT_SUCCESS);
 }
-

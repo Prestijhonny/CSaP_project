@@ -16,6 +16,7 @@
 #define LOG "LOG"
 #define CONFIG_PATH "../../config/config_server"
 #define LOGFILE_THRESHOLD 1024
+#define MAX_LEN 1024
 #define NUM_LOGFILES 5
 
 sem_t sem;
@@ -25,12 +26,12 @@ pid_t PPID;
 
 void createNewFilename(char path[]);
 void handler(int signo);
-void checkFile(char logPath[], char pathToFile[], char out[2048]);
+void checkFile(const char logPath[], char out[2048]);
 void findLastModifiedFile(char *path);
 int readConfFile(int *PORT, char LOGPATH[]);
 int createDir(char LOGPATH[]);
 int countFilesInDirectory(char *path);
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[], char path[]);
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[]);
 int countNumberOfCharacters(char path[]);
 char *findLeastRecentlyFile(char *directory_path);
 
@@ -43,11 +44,12 @@ void createNewFilename(char path[])
     timeinfo = localtime(&rawtime);
     // Format the date and time
     strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
+    memset(path,0, sizeof(path));
     strcat(path, LOG);
     strcat(path, nameFile);
 }
 
-int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[], char pathToFile[])
+int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, char logPath[])
 {
 
     while (TRUE)
@@ -93,49 +95,51 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient, c
 
         sem_wait(&sem);
 
-        checkFile(logPath, pathToFile, out);
+        checkFile(logPath, out);
 
         sem_post(&sem);
     }
 }
 
-// 1) All'accensione del server se non ci sono log file crearne uno e scrivere su quello altrimenti scrivere sul piu` recente su cui e` stato scritto
-
-// 2) Verificare se quando si scrive su un file e` stata superata una soglia LOGFILE_THRESHOLD di lunghezza, se si, allora, creare un nuovo file e scrivere su quello; contenstualmente se il numero dei file di log supera un certo limite, diciamo NUM_LOGFILE, il file di log piu' vecchio deve essere cancellato
-
-void checkFile(char logPath[], char pathToFile[], char out[])
+void checkFile(const char logPath[], char out[])
 {
-    int numberOfCharaters = countNumberOfCharacters(logPath);
-    // If the file has exceeded the threshold in terms of characters
-    if (numberOfCharaters >= LOGFILE_THRESHOLD)
-    {
-        // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
-        if (countFilesInDirectory(pathToFile) == NUM_LOGFILES)
-        {
-            char *fileToDelete = findLeastRecentlyFile(pathToFile);
-            if (remove(fileToDelete) == 0)
-                printf("File '%s' deleted successfully.\n", fileToDelete);
-            else
-                printf("Error deleting file\n");
-        }
-        // Create and write on a new log file
-        char pathToNewFile[1024];
-        strcpy(pathToNewFile, logPath);
+    int numFile = countFilesInDirectory(logPath);
+    char pathToNewFile[MAX_LEN];
+    // I use pathToNewFile as a placeholder for path to the file
+    strcpy(pathToNewFile, logPath);
+    // If there are zero files, i will create the first
+    if (numFile == 0){
         createNewFilename(pathToNewFile);
-        // Closing old file descriptor
-        fclose(logFile);
-        logFile = fopen(pathToNewFile, "a");
-        if (logFile == NULL)
+    }else if (numFile <= NUM_LOGFILES){
+        // If there is at least one file, i will open the most recently used
+        // This function will fill path with the name of the latest file used
+        findLastModifiedFile(pathToNewFile);
+        int numberOfCharacters = countNumberOfCharacters(pathToNewFile);
+        // If the file has exceeded the threshold in terms of characters
+        if (numberOfCharacters >= LOGFILE_THRESHOLD)
         {
-            printf("Error opening file\n");
-            shutdown(sockfd, SHUT_RDWR);
-            close(sockfd);
-            exit(EXIT_FAILURE);
+            // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
+            if (countFilesInDirectory(logPath) == NUM_LOGFILES)
+            {
+                char *fileToDelete = findLeastRecentlyFile(logPath);
+                if (remove(fileToDelete) == 0)
+                    printf("File '%s' deleted successfully.\n", fileToDelete);
+                else
+                    printf("Error deleting file\n");
+            }
+            createNewFilename(pathToNewFile);
         }
-
     }
-    
+
+    logFile = fopen(pathToNewFile, "a");
+    if (logFile == NULL){
+        printf("Error opening file\n");
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
     write(fileno(logFile), out, strlen(out));
+    fclose(logFile);
 }
 
 char *findLeastRecentlyFile(char *directory_path)
