@@ -141,6 +141,7 @@ FILE * getFileDescriptor(int sizeOfMessage)
         // Number of characters of the message to send
         // If the number of characters written on logfile and the size of message are less or equal than LOGFILE_THRESHOLD 
         // then the message can be written to the log file, otherwise, a new log file will simply be created
+        printf ("numberOfCharacters %d\nsizeOfMessage%d\n",numberOfCharacters , sizeOfMessage);
         if ((numberOfCharacters + sizeOfMessage) > LOGFILE_THRESHOLD)
         {
             // If the number of files reached the max number of logfile, it will be deleted the oldest logfile

@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
                 sem_wait(&sem);
                 char acceptedClient[MAX_PATH];
                 snprintf(acceptedClient,sizeof(acceptedClient), "A client has connected, accepted connection from %s:%d\n", clientAddr, intPortOfClient);
-                printf ("acceptedClient %s\n", acceptedClient);
+                printf ("acceptedClient %s \n", acceptedClient);
                 FILE *fp = getFileDescriptor(strlen(acceptedClient));
                 write(fileno(fp),acceptedClient,sizeof(acceptedClient));
                 fclose(fp);
