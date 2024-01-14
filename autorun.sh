@@ -1,8 +1,6 @@
 #!/bin/bash
 
 make
-cd server/src
-./server
-sleep 3
-cd client/src
-./clie
+gnome-terminal -- bash -c "cd server/src;./server; exec bash"
+gnome-terminal -- bash -c "cd client/src;./client; exec bash"
+gnome-terminal -- bash -c "cd client/src;./client; exec bash"
