@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 
                 sem_wait(&sem);
                 char acceptedClient[MAX_PATH];
-                snprintf(acceptedClient, "A client has connected, accepted connection from %s:%d\n", clientAddr, intPortOfClient);
+                snprintf(acceptedClient,sizeof(acceptedClient), "A client has connected, accepted connection from %s:%d\n", clientAddr, intPortOfClient);
                 FILE *fp = getFileDescriptor(strlen(acceptedClient));
                 write(fileno(fp),acceptedClient,sizeof(acceptedClient));
                 fclose(fp);

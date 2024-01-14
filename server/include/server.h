@@ -101,7 +101,7 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
             printf("The client %s:%s has disconnected\n", clientAddr, portClient);
             sem_wait(&sem);
             char disconnectedClient[MAX_PATH];
-            snprintf(disconnectedClient, "The client %s:%s has disconnected\n", clientAddr, portClient);
+            snprintf(disconnectedClient,sizeof(disconnectedClient), "The client %s:%s has disconnected\n", clientAddr, portClient);
             logFile = getFileDescriptor(strlen(disconnectedClient));
             write(fileno(logFile),disconnectedClient,sizeof(disconnectedClient));
             fclose(logFile);
