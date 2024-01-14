@@ -46,6 +46,7 @@ void createNewFilename(char path[])
     // Format the date and time
     strftime(nameFile, sizeof(nameFile), "%Y%m%d_%H_%M_%S.txt", timeinfo);
     strcat(path, LOG);
+    strcat(path, "/");
     strcat(path, nameFile);
 }
 
