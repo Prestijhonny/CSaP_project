@@ -60,7 +60,7 @@ void createNewFilename(char path[])
 {
     time_t rawtime;
     struct tm *timeinfo;
-    char nameFile[MAXNAMLEN];
+    char nameFile[MAX_PATH];
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     // Format the date and time
