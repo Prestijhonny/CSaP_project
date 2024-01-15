@@ -92,38 +92,49 @@ int main (int argc, char *argv[])
     printf("------------------------------------------------------------\n");
     // Register a signal SIGINT (CTRL+c when pressed on cmd)
     signal(SIGINT, int_handler);
-
-    if (setSocketNonBlocking(sockfd) == -1){
-        printf("Error to set socket non block mode\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // While loop until read EOF on stdin
-    char data[2048];
-    memset(data, 0, sizeof(data));
-    // Get data from stdin
-    printf("Send some data (press CTRL+D or type exit to quit): ");
     
-    while (fgets(data, sizeof(data), stdin) != NULL) {
+    pid_t pid = fork();
+
+    if (pid == 0){
+        // Child process
+        // While loop until read EOF on stdin
+        char data[2048];
+        memset(data, 0, sizeof(data));
+        // Get data from stdin
         printf("Send some data (press CTRL+D or type exit to quit): ");
         
-        /*ssize_t bytesRead = recv(sockfd, NULL, 0, MSG_PEEK);
+        while (fgets(data, sizeof(data), stdin) != NULL) {
+            printf("Send some data (press CTRL+D or type exit to quit): ");
+
+            // Send data to server 
+            if (send(sockfd,data,strlen(data),0) == -1){
+                printf("Error to send data\n");
+                shutdown(sockfd,SHUT_RDWR); 
+                close(sockfd);
+                exit(EXIT_FAILURE);
+            }
+
+            memset(data, 0, sizeof(data));
+        }
+    }else if (pid > 0){
+        // Parent process
+        ssize_t bytesRead = recv(sockfd, NULL, 0, MSG_PEEK);
 
         if (bytesRead == 0){
             printf("\nThe server has disconnected\n");
-            break;
-        }*/
-
-        // Send data to server 
-        if (send(sockfd,data,strlen(data),0) == -1){
-            printf("Error to send data\n");
-            shutdown(sockfd,SHUT_RDWR); 
-            close(sockfd);
-            exit(EXIT_FAILURE);
+            // Send SIGINT signal to child process
+            kill(pid, SIGINT);
+            // Wait until the child process dies
+            wait(NULL);
         }
-
-        memset(data, 0, sizeof(data));
+    }else{
+        printf("Error creating child process\n");
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        exit(EXIT_SUCCESS);
     }
+    
+
     printf("\nShutdown and close socket...\n");
     shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 

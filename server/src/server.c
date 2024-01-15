@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
                 printf("Error creating child process\n");
                 shutdown(clientSocket, SHUT_RDWR);
                 close(clientSocket);
+                exit(EXIT_FAILURE);
             }
             else if (pid == 0)
             {
@@ -131,10 +132,10 @@ int main(int argc, char *argv[])
                 int intPortOfClient = ntohs(client_addr.sin_port);
                 printf("A client has connected, accepted connection from %s:%d\n\n", clientAddr, intPortOfClient);
 
-                sem_wait(&sem);
                 char acceptedClient[128];
                 memset(acceptedClient, 0, sizeof(acceptedClient));
                 snprintf(acceptedClient, sizeof(acceptedClient), "A client has connected, accepted connection from %s:%d\n\n", clientAddr, intPortOfClient);
+                sem_wait(&sem);
                 FILE *fp = getFileDescriptor(strlen(acceptedClient));
                 write(fileno(fp),acceptedClient,strlen(acceptedClient));
                 fclose(fp);
@@ -144,8 +145,9 @@ int main(int argc, char *argv[])
                     printf("Error: cleaning everything\n");
                 else
                     printf("Shutdown and close connection\n\n");
-                
+
                 sem_close(&sem);
+                sem_destroy(&sem);
                 shutdown(clientSocket, SHUT_RDWR);
                 close(clientSocket);
                 exit(EXIT_SUCCESS);
@@ -153,9 +155,4 @@ int main(int argc, char *argv[])
         
         }
     }
-    shutdown(sockfd, SHUT_RDWR);
-    close(sockfd);
-    registerServerShutdown(LOGPATH);
-    sem_destroy(&sem);
-    exit(EXIT_SUCCESS);
 }
