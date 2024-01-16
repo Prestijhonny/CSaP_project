@@ -10,13 +10,9 @@ The client executable is equipped with the following command-line options:
 
 - **IP address and listening port of the server:** users can specify the server's IP address and listening port to establish a connection as commands argument of executable
 # Example
-'''
-./client localhost 9000
-'''
+<pre>./client localhost 9000</pre>
 or
-'''
-./client 127.0.0.1 9000
-'''
+<pre>./client 127.0.0.1 9000</pre>
 
 ### Server executable
 
