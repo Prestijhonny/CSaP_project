@@ -38,6 +38,13 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient);
 int countNumberOfCharacters(char path[]);
 FILE * getFileDescriptor(int sizeOfMessage);
 
+void cleanupAndExit() {
+    sem_close(&sem);
+    sem_destroy(&sem);
+    shutdown(clientSocket, SHUT_RDWR);
+    close(clientSocket);
+}
+
 FILE * getFileDescriptor(int sizeOfMessage)
 {
     // Count the number of files in the log directory
@@ -88,13 +95,6 @@ FILE * getFileDescriptor(int sizeOfMessage)
     }
 
     return lf;
-}
-
-void cleanupAndExit() {
-    sem_close(&sem);
-    sem_destroy(&sem);
-    shutdown(sockfd, SHUT_RDWR);
-    close(sockfd);
 }
 
 void registerServerShutdown()
@@ -343,7 +343,6 @@ int countNumberOfCharacters(char path[])
     FILE *fp = fopen(path, "r");
     if (fp == NULL){
         printf("Error to open the logfile, closing client connection\n");
-        sem_post(&sem);
         sem_post(&sem);
         cleanupAndExit();
         exit(EXIT_FAILURE);
