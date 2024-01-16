@@ -23,7 +23,7 @@ The server executable accepts the following command-line options:
 <pre>./server 9000 logfile</pre>
 The logfiles will be saved in **current_working_dir/logfile**
 ## Default configuration file
-The client and server have default configuration file where to read the IP address and listening port (for client) and the listening port and log file directory (for server). 
+The client and server have default configuration file that are used when the user doesn't write anything as command-line options. In the configuration file of client there are the default IP address and listening port. For the server there are the default listening port and log file directory. 
 ### Client conf
 
 ### Server conf
