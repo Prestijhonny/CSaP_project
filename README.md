@@ -36,15 +36,15 @@ The server configuration file is stored at **config/config_server** and this is 
 PORT 8080
 LOGPATH ../../log
 </pre>
-## Server Shutdown Mechanism
+## Server shutdown mechanism
 
-The server is designed to shut down when it receives a user-selected signal or a quit command from the command line. For example, pressing CTRL+C will gracefully terminate the server.
+The server is designed to shut down when it receives a user-selected signal from the command line. For example, pressing CTRL+C will gracefully terminate the server by SIGINT signale handled correctly.
 
 ## Client Shutdown Mechanism
 
-The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D), or a quit command from the command line.
+The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D) or CTRL+C from the command line.
 
-# Compilation and Execution
+# Compilation and execution
 
 To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution, and client execution, ensuring a smooth and efficient workflow.
 
