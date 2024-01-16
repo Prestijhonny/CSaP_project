@@ -30,7 +30,7 @@ void createNewFilename(char path[]);
 void handler(int signo);
 void registerServerShutdown();
 void findLastModifiedFile(char *path);
-void deleteLeastRecentlyFile(char *directory_path);
+int deleteLeastRecentlyFile(char *directory_path);
 int readConfFile(int *PORT);
 int createDir();
 int countFilesInDirectory(char *path);
@@ -60,8 +60,13 @@ FILE * getFileDescriptor(int sizeOfMessage)
         if ((numberOfCharacters + sizeOfMessage) > LOGFILE_THRESHOLD)
         {
             // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
-            if (countFilesInDirectory(LOGPATH) == NUM_LOGFILES)
-                deleteLeastRecentlyFile(LOGPATH);
+            if (countFilesInDirectory(LOGPATH) == NUM_LOGFILES){
+                // The least recently file isn't deleted for some problem
+                if (deleteLeastRecentlyFile(LOGPATH) == -1)
+                    kill(0, SIGUSR1);
+                    
+            }
+
             // Use this strcpy to make sure pathToNewFile contains the log path so it will be filled by the name of the new logfile
             strcpy(pathToNewFile, LOGPATH);
             createNewFilename(pathToNewFile);
@@ -109,14 +114,14 @@ void createNewFilename(char path[])
     strcat(path, nameFile);
 }
 
-void deleteLeastRecentlyFile(char *directory_path)
+int deleteLeastRecentlyFile(char *directory_path)
 {
     DIR *dir = opendir(directory_path);
 
     if (dir == NULL)
     {
         printf("Error opening directory");
-        return;
+        return -1;
     }
 
     time_t lessRecently = time(NULL);
@@ -151,8 +156,11 @@ void deleteLeastRecentlyFile(char *directory_path)
     }
 
     closedir(dir);
-    if (remove(lessRecentlyFile) != 0)
+    if (remove(lessRecentlyFile) != 0){
         printf("Error deleting last log file\n");
+        return -1;
+    }
+        
 
 }
 
@@ -203,38 +211,45 @@ void findLastModifiedFile(char *path)
 void handler(int signo)
 {
     // Handler for SIGINT signal
-    if (signo == SIGINT)
-    {
+    if (signo == SIGINT){
         // Only parent process use this code
-        if (getpid() == PPID){
+        if (getpid() == PPID)
             printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
-            registerServerShutdown();
-            // Child processes closed the sockfd at beginning
-            sem_close(&sem);
-            sem_destroy(&sem);
-            shutdown(sockfd, SHUT_RDWR);
-            close(sockfd);
-            // Wait until there aren't more child processes
-            while (wait(NULL) != -1);
-            exit(EXIT_SUCCESS);
-        }else{
-            // Child process
-            int filDes = fileno(logFile);
-            // Check if the file descriptor is opened by the child processes
-            if (filDes >= 0){
-                // This flag helps to understand if the file is opened by the calling process
-                int flag = fcntl(filDes, F_GETFL);
-                // If the file is opened in append mode, then close the file descriptor
-                if (flag & O_APPEND) 
-                    fclose(logFile);
-            }
+        
+    }if (signo == SIGUSR1){
+        // Only parent process use this code
+        if (getpid() == PPID )
+            printf("\nSIGUSR1 signal received, shutdown and close socket for all processes\n");
+    }
 
-            sem_close(&sem);
-            sem_destroy(&sem);
-            shutdown(clientSocket, SHUT_RDWR);
-            close(clientSocket);
-            exit(EXIT_SUCCESS);
+    // Only parent process use this code
+    if (getpid() == PPID){
+        registerServerShutdown();
+        // Child processes closed the sockfd at beginning
+        sem_close(&sem);
+        sem_destroy(&sem);
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        // Wait until there aren't more child processes
+        while (wait(NULL) != -1);
+        exit(EXIT_SUCCESS);
+    }else{
+        // Child process
+        int filDes = fileno(logFile);
+        // Check if the file descriptor is opened by the child processes
+        if (filDes >= 0){
+            // This flag helps to understand if the file is opened by the calling process
+            int flag = fcntl(filDes, F_GETFL);
+            // If the file is opened in append mode, then close the file descriptor
+            if (flag & O_APPEND) 
+                fclose(logFile);
         }
+
+        sem_close(&sem);
+        sem_destroy(&sem);
+        shutdown(clientSocket, SHUT_RDWR);
+        close(clientSocket);
+        exit(EXIT_SUCCESS);
     }
 
 }
