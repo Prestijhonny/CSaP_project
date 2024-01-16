@@ -41,47 +41,60 @@ FILE * getFileDescriptor(int sizeOfMessage);
 FILE * getFileDescriptor(int sizeOfMessage)
 {
     // Count the number of files in the log directory
-    int numFile = countFilesInDirectory(LOGPATH);
+    int numFiles = countFilesInDirectory(LOGPATH);
     char pathToNewFile[MAX_PATH];
-    // I use pathToNewFile as a placeholder for path to the file without modifing LOGPATH
-    strcpy(pathToNewFile, LOGPATH); 
-    // If there are zero files, i will create the first
-    if (numFile == 0){
+
+    // Use pathToNewFile as a placeholder for the path to the file without modifying LOGPATH
+    strcpy(pathToNewFile, LOGPATH);
+
+    // If there are zero files, create the first one
+    if (numFiles == 0) {
         createNewFilename(pathToNewFile);
-    }else if (numFile <= NUM_LOGFILES){
-        // If there is at least one file, i will open the most recently used
+    } else if (numFiles <= NUM_LOGFILES) {
+        // If there is at least one file, open the most recently used
         // This function will fill path with the name of the latest file used
         findLastModifiedFile(pathToNewFile);
-        // Counts number of characters in the last modified file
+
+        // Count the number of characters in the last modified file
         int numberOfCharacters = countNumberOfCharacters(pathToNewFile);
-        // Number of characters of the message to send
-        // If the number of characters written on logfile and the size of message are less or equal than LOGFILE_THRESHOLD 
-        // then the message can be written to the log file, otherwise, a new log file will simply be created
-        if ((numberOfCharacters + sizeOfMessage) >= LOGFILE_THRESHOLD)
-        {
-            // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
-            if (countFilesInDirectory(LOGPATH) == NUM_LOGFILES){
-                // The least recently file isn't deleted for some problem
-                if (deleteLeastRecentlyFile(LOGPATH) == -1)
-                    // Send the SIGUSR1 signal to handle the failure of the deletion of logfile
-                    kill(0, SIGUSR1);
-                    
+
+        // If the number of characters written on the logfile and the size of the message exceed LOGFILE_THRESHOLD
+        if ((numberOfCharacters + sizeOfMessage) >= LOGFILE_THRESHOLD) {
+            // If the number of files reached the maximum number of log files, delete the oldest logfile
+            if (numFiles == NUM_LOGFILES) {
+                // Delete the least recently used file
+                if (deleteLeastRecentlyFile(LOGPATH) == -1) {
+                    printf("Error deleting the least recently used file. The client will be kicked out. "
+                           "Try to restart the server or delete the file manually.\n");
+                    sem_post(&sem);
+                    cleanupAndExit();
+                    exit(EXIT_FAILURE);
+                }
             }
 
-            // Use this strcpy to make sure pathToNewFile contains the log path so it will be filled by the name of the new logfile
+            // Reset pathToNewFile to contain the log path, then create a new filename
             strcpy(pathToNewFile, LOGPATH);
             createNewFilename(pathToNewFile);
         }
     }
+
     // Open the log file for append
-    FILE * lf = fopen(pathToNewFile, "a");
-    if (lf == NULL){
+    FILE *lf = fopen(pathToNewFile, "a");
+    if (lf == NULL) {
         printf("Error opening file\n");
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
+        sem_post(&sem);
+        cleanupAndExit();
         exit(EXIT_FAILURE);
     }
+
     return lf;
+}
+
+void cleanupAndExit() {
+    sem_close(&sem);
+    sem_destroy(&sem);
+    shutdown(sockfd, SHUT_RDWR);
+    close(sockfd);
 }
 
 void registerServerShutdown()
@@ -155,12 +168,15 @@ int deleteLeastRecentlyFile(char *directory_path)
             }
             else{
                 printf("Error getting file information");
+                closedir(dir); 
+                return -1;
             }
         }
     }
 
     if (remove(lessRecentlyFile) != 0){
         printf("Error deleting last log file\n");
+        closedir(dir); 
         return -1;
     }
     closedir(dir); 
@@ -179,6 +195,8 @@ void findLastModifiedFile(char *path)
     if ((dir = opendir(path)) == NULL)
     {
         printf("Error opening directory\n");
+        sem_post(&sem);
+        cleanupAndExit();
         exit(EXIT_FAILURE);
     }
     char file_path[MAX_PATH];
@@ -201,6 +219,8 @@ void findLastModifiedFile(char *path)
                 }
             }else{
                 printf("Error getting file information");
+                sem_post(&sem);
+                cleanupAndExit();
                 exit(EXIT_FAILURE);
             }
         }
@@ -213,50 +233,41 @@ void findLastModifiedFile(char *path)
     closedir(dir);
 }
 
-void handler(int signo)
-{
-    // Handler for SIGINT signal
-    if (signo == SIGINT){
-        // Only parent process use this code
-        if (getpid() == PPID)
-            printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
-        
-    }if (signo == SIGUSR1){
-        // Only parent process use this code
-        if (getpid() == PPID )
-            printf("\nSIGUSR1 signal received, shutdown and close socket for all processes\n");
-    }
+// This handler manage SIGINT signal (CTRL+c pressed) and SIGUSR1 signal is sent when a child processes cannot delete
+// the oldest file in the log directory
+void handler(int signo) {
+    pid_t currentPid = getpid();
 
-    // Only parent process use this code
-    if (getpid() == PPID){
-        registerServerShutdown();
-        // Child processes closed the sockfd at beginning
-        sem_close(&sem);
-        sem_destroy(&sem);
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
-        // Wait until there aren't more child processes
-        while (wait(NULL) != -1);
-        exit(EXIT_SUCCESS);
-    }else{
+    if (currentPid != PPID) {
         // Child process
         int filDes = fileno(logFile);
-        // Check if the file descriptor is opened by the child processes
-        if (filDes >= 0){
-            // This flag helps to understand if the file is opened by the calling process
-            int flag = fcntl(filDes, F_GETFL);
-            // If the file is opened in append mode, then close the file descriptor
-            if (flag & O_APPEND) 
-                fclose(logFile);
-        }
-
+        // Check if the file descriptor is opened by the child processes and if the file is opened in append mode, then close the file descriptor
+        if (filDes >= 0 && (fcntl(filDes, F_GETFL) & O_APPEND))
+            fclose(logFile);
+        sem_post(&sem);
         sem_close(&sem);
         sem_destroy(&sem);
         shutdown(clientSocket, SHUT_RDWR);
         close(clientSocket);
         exit(EXIT_SUCCESS);
-    }
+    }else{
+        // Parent process
+        if (signo == SIGINT) 
+            printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
 
+        registerServerShutdown();
+
+        sem_post(&sem);
+        sem_close(&sem);
+        sem_destroy(&sem);
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+
+        // Wait until there aren't more child processes
+        while (wait(NULL) != -1);
+
+        exit(EXIT_SUCCESS);
+    }
 }
 
 // Read data from conf file when server starts
@@ -266,7 +277,7 @@ int readConfFile(int *PORT)
     if (fp == NULL)
     {
         printf("Error to open config file");
-        exit(EXIT_FAILURE);
+        return -1;
     }
     char line[50];
     while (fgets(line, sizeof(line), fp) != NULL)
@@ -308,7 +319,9 @@ int countFilesInDirectory(char *path)
     // Check if the directory was successfully opened
     if (dir == NULL)
     {
-        printf("Unable to open directory");
+        printf("Unable to open log directory, closing client connection\n");
+        sem_post(&sem);
+        cleanupAndExit();
         exit(EXIT_FAILURE);
     }
 
@@ -329,8 +342,11 @@ int countNumberOfCharacters(char path[])
 {
     FILE *fp = fopen(path, "r");
     if (fp == NULL){
-        printf("Error to open file\n");
-        return -1;
+        printf("Error to open the logfile, closing client connection\n");
+        sem_post(&sem);
+        sem_post(&sem);
+        cleanupAndExit();
+        exit(EXIT_FAILURE);
     }
     // Positioning the pointer at end of file
     fseek(fp, 0, SEEK_END);

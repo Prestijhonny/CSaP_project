@@ -28,9 +28,7 @@ int main(int argc, char *argv[])
         strcat(LOGPATH, argv[2]);
         printf("Listening port: %d\n", PORT);
         if (createDir() < 0)
-        {
             exit(EXIT_FAILURE);
-        }
         printf("Log file path: %s\n", LOGPATH);
     }
     else if (argc == 2)
@@ -140,17 +138,26 @@ int main(int argc, char *argv[])
                 write(fileno(fp),acceptedClient,strlen(acceptedClient));
                 fclose(fp);
                 sem_post(&sem);
-                
-                if (handleClientConn(clientSocket, clientAddr, intPortOfClient) < 0)
-                    printf("Error: cleaning everything\n");
-                else
-                    printf("Shutdown and close connection\n\n");
+                int value = handleClientConn(clientSocket, clientAddr, intPortOfClient);
 
+                // Release, close, and destroy the semaphore
+                sem_post(&sem);
                 sem_close(&sem);
                 sem_destroy(&sem);
+
+                // Shutdown and close the connection to the client
                 shutdown(clientSocket, SHUT_RDWR);
                 close(clientSocket);
-                exit(EXIT_SUCCESS);
+
+                // Check the return value and take appropriate action
+                if (value < 0) {
+                    printf("Cleaning everything and close connection...\n\n");
+                    exit(EXIT_FAILURE);
+                } else {
+                    printf("Shutdown and close connection to client\n\n");
+                    exit(EXIT_SUCCESS);
+                }
+
             }
         
         }
