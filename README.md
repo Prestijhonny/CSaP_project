@@ -4,7 +4,7 @@
 
 The goal of this project is to implement a "log server" – a server that logs inputs received from clients into a log file. The client and server executables are designed to be configurable through command-line options, with default values stored in a configuration file for flexibility.
 
-### Client executable
+## Client executable
 
 The client executable is equipped with the following command-line options:
 
@@ -13,8 +13,8 @@ The client executable is equipped with the following command-line options:
 <pre>./client localhost 9000</pre>
 or
 <pre>./client 127.0.0.1 9000</pre>
-
-### Server executable
+The client will connect to **localhost:9000 ** or **127.0.0.1:9000**
+## Server executable
 
 The server executable accepts the following command-line options:
 
