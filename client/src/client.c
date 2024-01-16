@@ -98,7 +98,7 @@ int main (int argc, char *argv[])
     if (pid == 0){
         // Child process
         // While loop until read EOF on stdin
-        char data[2048];
+        char data[MAX_DATA];
         memset(data, 0, sizeof(data));
         // Get data from stdin
         printf("Send some data (press CTRL+D or type exit to quit): ");

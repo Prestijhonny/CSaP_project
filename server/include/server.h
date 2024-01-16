@@ -43,7 +43,7 @@ FILE * getFileDescriptor(int sizeOfMessage)
     // Count the number of files in the log directory
     int numFile = countFilesInDirectory(LOGPATH);
     char pathToNewFile[MAX_PATH];
-    // I use pathToNewFile as a placeholder for path to the file
+    // I use pathToNewFile as a placeholder for path to the file without modifing LOGPATH
     strcpy(pathToNewFile, LOGPATH); 
     // If there are zero files, i will create the first
     if (numFile == 0){
@@ -57,12 +57,13 @@ FILE * getFileDescriptor(int sizeOfMessage)
         // Number of characters of the message to send
         // If the number of characters written on logfile and the size of message are less or equal than LOGFILE_THRESHOLD 
         // then the message can be written to the log file, otherwise, a new log file will simply be created
-        if ((numberOfCharacters + sizeOfMessage) > LOGFILE_THRESHOLD)
+        if ((numberOfCharacters + sizeOfMessage) >= LOGFILE_THRESHOLD)
         {
             // If the number of files reached the max number of logfile, it will be deleted the oldest logfile
             if (countFilesInDirectory(LOGPATH) == NUM_LOGFILES){
                 // The least recently file isn't deleted for some problem
                 if (deleteLeastRecentlyFile(LOGPATH) == -1)
+                    // Send the SIGUSR1 signal to handle the failure of the deletion of logfile
                     kill(0, SIGUSR1);
                     
             }
@@ -123,45 +124,46 @@ int deleteLeastRecentlyFile(char *directory_path)
         printf("Error opening directory");
         return -1;
     }
-
+    // Get the current time 
     time_t lessRecently = time(NULL);
-    char *lessRecentlyFile = NULL;
+    char lessRecentlyFile[MAX_PATH];
     char file_path[MAX_PATH];
     struct dirent *entry;
     struct stat file_stat;
-
+    // Search for a file that is different from "." and ".."
     while ((entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
         {
 
-            memset( file_path, 0, sizeof(file_path));
-            snprintf(file_path, sizeof(file_path), "%s/%s", directory_path, entry->d_name);
+            memset(file_path, 0, sizeof(file_path));
+            strcpy(file_path, directory_path);
+            strcat(file_path, "/");
+            strcat(file_path, entry->d_name);
 
-            
+            // stat is needed for retrieve file information and if it returns 0, it means that it succeed
             if (stat(file_path, &file_stat) == 0)
             {
+                // Get time of last modification of file and compare it to lessRecently
                 if (file_stat.st_mtime < lessRecently)
                 {
                     lessRecently = file_stat.st_mtime;
-                    if (lessRecentlyFile != NULL)
-                        free(lessRecentlyFile);
-
-                    lessRecentlyFile = strdup(file_path);
+                    // Clean and fill the string
+                    memset(lessRecentlyFile, 0, sizeof(lessRecentlyFile));
+                    strcpy(lessRecentlyFile, file_path);
                 }
             }
-            else
+            else{
                 printf("Error getting file information");
+            }
         }
     }
 
-    closedir(dir);
     if (remove(lessRecentlyFile) != 0){
         printf("Error deleting last log file\n");
         return -1;
     }
-        
-
+    closedir(dir); 
 }
 
 // Function to find last modified log file
@@ -173,27 +175,28 @@ void findLastModifiedFile(char *path)
     time_t latestModTime = 0;
     char latestModFileName[MAX_PATH];
     int nFile = 0;
-    dir = opendir(path);
 
-    if (dir == NULL)
+    if ((dir = opendir(path)) == NULL)
     {
         printf("Error opening directory\n");
         exit(EXIT_FAILURE);
     }
+    char file_path[MAX_PATH];
     // Read the entry of the dir
     while ((entry = readdir(dir)) != NULL)
     {
-
-        char filePath[512];
-        // Create the file path with the name of the file found
-        snprintf(filePath, sizeof(filePath), "%s/%s", path, entry->d_name);
         // If the file is not equal to current dir "." or parent dir ".." then analayze the file 
-        if ((strcmp(entry->d_name, ".") != 0) && (strcmp(entry->d_name, "..") != 0))
-        {
+        if ((strcmp(entry->d_name, ".") != 0) && (strcmp(entry->d_name, "..") != 0)){
+            // Create the file path with the name of the file found
+            memset(file_path, 0, sizeof(file_path));
+            strcpy(file_path, path);
+            strcat(file_path, "/");
+            strcat(file_path, entry->d_name);
 
-            if (stat(filePath, &fileStat) == 0){
+            if (stat(file_path, &fileStat) == 0){
                 if (fileStat.st_mtime > latestModTime){
                     latestModTime = fileStat.st_mtime;
+                    memset(latestModFileName, 0, sizeof(latestModFileName));
                     strcpy(latestModFileName, entry->d_name);
                 }
             }else{
@@ -202,6 +205,8 @@ void findLastModifiedFile(char *path)
             }
         }
     }
+    // Copy the latest modified file path in path variable, it means that the path variable passed to the function
+    // is changed directly without need to return it
     strcat(path, "/");
     strcat(path, latestModFileName);
     

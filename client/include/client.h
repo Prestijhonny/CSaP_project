@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #define TRUE 1
 #define MAX_HOSTNAME 1024
+#define MAX_DATA 2048
 
 pid_t PPID;
 int sockfd;
