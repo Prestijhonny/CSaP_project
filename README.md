@@ -39,7 +39,7 @@ LOGPATH ../../log
 ## Shutdown mechanism
 ### Server
 
-The server is designed to shut down when it receives a user-selected signal from the command line. For example, pressing CTRL+C will gracefully terminate the server by SIGINT signal handled correctly.
+The server is designed to shut down when it receives a user-selected signal from the command line. Pressing CTRL+C will gracefully terminate the server by SIGINT signal handled correctly.
 
 ### Client
 
