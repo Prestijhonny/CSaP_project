@@ -8,7 +8,7 @@ The goal of this project is to implement a "log server" – a server that logs i
 
 The client executable is equipped with the following command-line options:
 
-- **IP address and listening port of the server:** users can specify the server's IP address and listening port to establish a connection as commands argument of executable
+- **IP address and listening port of the server:** users can specify the server's IP address and listening port to establish a connection as commands argument of executable.
 ### Example
 <pre>./client localhost 9000</pre>
 or
@@ -18,7 +18,10 @@ or
 
 The server executable accepts the following command-line options:
 
-- **Listening port and log file directory:** Users can define the port and log file directory on which the server listens for incoming client connections.
+- **Listening port and log file directory:** Users can define the port and log file directory on which the server listens for incoming client connections and save the logfiles. The log file will be saved in the same current working directory. 
+### Example
+<pre>./server 9000 logfile/</pre>
+The logfiles will be saved in **current_working_dir/logfile**
 
 ### Server Shutdown Mechanism
 
