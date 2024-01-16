@@ -18,20 +18,25 @@ The client will connect to **localhost:9000** or **127.0.0.1:9000**
 
 The server executable accepts the following command-line options:
 
-- **Listening port and log file directory:** Users can define the port and log file directory on which the server listens for incoming client connections and save the logfiles. The log file will be saved in the same current working directory. 
+- **Listening port and log file directory:** users can define the port and log file directory on which the server listens for incoming client connections and save the logfiles. The log file will be saved in the directory specified but in the same current working directory. 
 ### Example
-<pre>./server 9000 logfile/</pre>
+<pre>./server 9000 logfile</pre>
 The logfiles will be saved in **current_working_dir/logfile**
+## Default configuration file
+The client and server have default configuration file where to read the IP address and listening port (for client) and the listening port and log file directory (for server). 
+### Client conf
 
-### Server Shutdown Mechanism
+### Server conf
+
+## Server Shutdown Mechanism
 
 The server is designed to shut down when it receives a user-selected signal or a quit command from the command line. For example, pressing CTRL+C will gracefully terminate the server.
 
-### Client Shutdown Mechanism
+## Client Shutdown Mechanism
 
 The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D), or a quit command from the command line.
 
-## Compilation and Execution
+# Compilation and Execution
 
 To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution, and client execution, ensuring a smooth and efficient workflow.
 
