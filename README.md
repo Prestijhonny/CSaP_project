@@ -1,22 +1,28 @@
-# Log Server Implementation
+# Log server implementation
 
-## Project Description
+## Project description
 
 The goal of this project is to implement a "log server" – a server that logs inputs received from clients into a log file. The client and server executables are designed to be configurable through command-line options, with default values stored in a configuration file for flexibility.
 
-### Client Executable
+### Client executable
 
 The client executable is equipped with the following command-line options:
 
-- **IP address and listening port of the server:** Users can specify the server's IP address and listening port to establish a connection 
-- **Shutdown Options:** The client can be terminated gracefully using user-selected signals, EOF (CTRL+D), or a quit command from the command line.
+- **IP address and listening port of the server:** users can specify the server's IP address and listening port to establish a connection as commands argument of executable
+# Example
+'''
+./client localhost 9000
+'''
+or
+'''
+./client 127.0.0.1 9000
+'''
 
-### Server Executable
+### Server executable
 
 The server executable accepts the following command-line options:
 
-- **Listening Port:** Users can define the port on which the server listens for incoming client connections.
-- **Log File Directory:** A directory path where the log file will be stored.
+- **Listening port and log file directory:** Users can define the port and log file directory on which the server listens for incoming client connections.
 
 ### Server Shutdown Mechanism
 
