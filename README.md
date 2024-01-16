@@ -8,7 +8,7 @@ The goal of this project is to implement a "log server" – a server that logs i
 
 The client executable is equipped with the following command-line options:
 
-- **IP Address and Listening Port of the Server:** Users can specify the server's IP address and listening port to establish a connection.
+- **IP address and listening port of the server:** Users can specify the server's IP address and listening port to establish a connection 
 - **Shutdown Options:** The client can be terminated gracefully using user-selected signals, EOF (CTRL+D), or a quit command from the command line.
 
 ### Server Executable
