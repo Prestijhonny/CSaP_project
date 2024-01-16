@@ -24,9 +24,9 @@ The server executable accepts the following command-line options:
 The logfiles will be saved in **current_working_dir/logfile**
 ## Default configuration file
 The client and server have default configuration files that are used when the user doesn't write anything as command-line options. In the configuration file of client there are the default IP address and listening port. For the server there are the default listening port and log file directory. 
-### Client conf
+### Client configuration file
 
-### Server conf
+### Server configuration file
 
 ## Server Shutdown Mechanism
 
