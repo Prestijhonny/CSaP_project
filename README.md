@@ -13,7 +13,7 @@ The client executable is equipped with the following command-line options:
 <pre>./client localhost 9000</pre>
 or
 <pre>./client 127.0.0.1 9000</pre>
-The client will connect to **localhost:9000 ** or **127.0.0.1:9000**
+The client will connect to **localhost:9000** or **127.0.0.1:9000**
 ## Server executable
 
 The server executable accepts the following command-line options:
