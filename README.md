@@ -9,7 +9,7 @@ The goal of this project is to implement a "log server" – a server that logs i
 The client executable is equipped with the following command-line options:
 
 - **IP address and listening port of the server:** users can specify the server's IP address and listening port to establish a connection as commands argument of executable
-# Example
+### Example
 <pre>./client localhost 9000</pre>
 or
 <pre>./client 127.0.0.1 9000</pre>
