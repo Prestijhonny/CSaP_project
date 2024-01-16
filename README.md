@@ -40,9 +40,9 @@ LOGPATH ../../log
 
 The server is designed to shut down when it receives a user-selected signal from the command line. For example, pressing CTRL+C will gracefully terminate the server by SIGINT signal handled correctly.
 
-## Client Shutdown Mechanism
+## Client shutdown mechanism
 
-The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D) or CTRL+C from the command line.
+The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D) or CTRL+C from the command line. In both cases, the client correctly terminate because the two cases are handled correctly.
 
 # Compilation and execution
 
