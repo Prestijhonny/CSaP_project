@@ -47,9 +47,9 @@ The client is programmed to shut down gracefully when it receives a user-selecte
 
 # Compilation and execution
 
-To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution, and client execution, ensuring a smooth and efficient workflow.
+To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It just start the server and two clients with default configuration.
 
 ### Compilation
 
 ```bash
-./autorun.sh compile
+./autorun.sh
