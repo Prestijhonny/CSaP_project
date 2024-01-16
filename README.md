@@ -44,7 +44,7 @@ The server is designed to shut down when it receives a user-selected signal from
 ### Client
 
 The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D) or CTRL+C from the command line. In both cases, the client correctly terminate because the two cases are handled correctly.
-
+# Requieriments
 # Compilation and execution
 
 To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It just start the server and two clients with default configuration.
