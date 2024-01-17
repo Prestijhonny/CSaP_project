@@ -20,6 +20,7 @@ The `autorun.sh` script compile and run the server and client. It handles compil
 
 <pre>./autorun.sh</pre>
 
+More specifically, it starts three terminals where one of them is the server and the other two are the client.
 # Test
 The tests to be done are the following:
 1. Server startup (start the server only)
