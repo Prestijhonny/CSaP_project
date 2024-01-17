@@ -63,3 +63,5 @@ To compile and run the server and client, use the provided `autorun.sh` script. 
 
 ```bash
 ./autorun.sh
+
+# Test
