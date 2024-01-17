@@ -9,9 +9,7 @@ Before compiling and running the log server and client, ensure that your system 
 - **Operating System:** Ubuntu 22.04.1 operative system.
 - **Compiler:** GCC (GNU Compiler Collection) version 11.4.0.
   - Verify your GCC version using the following command:
-    ```bash
-    gcc --version
-    ```
+    <pre>gcc --version</pre>
   - If GCC is not installed or an older version is present, download and install the latest version from the [official GCC website](https://gcc.gnu.org/).
 
 # Compilation and execution
