@@ -57,7 +57,7 @@ Before compiling and running the log server and client, ensure that your system 
 
 # Compilation and execution
 
-To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It starts the server and two clients with default configuration.
+To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It boots the server and two clients with default configuration.
 
 ### Compilation
 
