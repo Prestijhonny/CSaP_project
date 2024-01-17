@@ -14,7 +14,7 @@ Before compiling and running the log server and client, ensure that your system 
     ```
   - If GCC is not installed or an older version is present, download and install the latest version from the [official GCC website](https://gcc.gnu.org/).
 
-# Compilation and execution
+# Installation, compilation and execution
 
 To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It boots the server and two clients with default configuration.
 
