@@ -44,7 +44,18 @@ The server is designed to shut down when it receives a user-selected signal from
 ### Client
 
 The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D) or CTRL+C from the command line. In both cases, the client correctly terminate because the two cases are handled correctly.
-# Requieriments
+# System Requirements
+
+Before compiling and running the log server and client, ensure that your system meets the following requirements:
+
+- **Operating System:** Any modern Unix-like operating system (e.g., Linux, macOS).
+- **Compiler:** GCC (GNU Compiler Collection) version 7.0 or later.
+  - Verify your GCC version using the following command:
+    ```bash
+    gcc --version
+    ```
+  - If GCC is not installed or an older version is present, download and install the latest version from the [official GCC website](https://gcc.gnu.org/).
+
 # Compilation and execution
 
 To compile and run the server and client, use the provided `autorun.sh` script. The script handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It just start the server and two clients with default configuration.
