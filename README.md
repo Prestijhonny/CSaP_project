@@ -44,12 +44,11 @@ The server is designed to shut down when it receives a user-selected signal from
 ### Client
 
 The client is programmed to shut down gracefully when it receives a user-selected signal, EOF (CTRL+D) or CTRL+C from the command line. In both cases, the client correctly terminate because the two cases are handled correctly.
-# System Requirements
+# System requirements
 
 Before compiling and running the log server and client, ensure that your system meets the following requirements:
-
-- **Operating System:** Any modern Unix-like operating system (e.g., Linux, macOS).
-- **Compiler:** GCC (GNU Compiler Collection) version 7.0 or later.
+- **Operating System:** Ubuntu 22.04.1 operative system.
+- **Compiler:** GCC (GNU Compiler Collection) version 11.4.0.
   - Verify your GCC version using the following command:
     ```bash
     gcc --version
