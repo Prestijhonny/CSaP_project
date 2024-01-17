@@ -11,7 +11,7 @@ Before compiling and running the log server and client, ensure that your system 
   - Verify your GCC version using the following command:
     <pre>gcc --version</pre>
   - If GCC is not installed or an older version is present, download and install the latest version from the [official GCC website](https://gcc.gnu.org/).
-
+    
 # Compilation and execution
 
 The `autorun.sh` script compile and run the server and client. It handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It boots the server and two clients with default configuration. 
