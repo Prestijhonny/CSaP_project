@@ -64,10 +64,11 @@ To compile and run the server and client, use the provided `autorun.sh` script. 
 <pre>./autorun.sh</pre>
 
 # Test
-The test that need to be done are the followings:
+The tests to be done are the following:
 1. Server startup (start the server only)
 2. Client connect (after (1), record the connection on the log file)
 3. Client message (after (1), let the client send a message and the server succesfully logs it)
 4. Second client message (after (3), start another client that sends a new message to the server)
 5. Client shutdown (after (4), let the client succesfully close the connection and the server log the closing)
 6. Server shutdown (after (5), let the server succesfully stop, after recording the order of shutdown).
+autorun.sh script does the 1, 2 and 3 test cases.
