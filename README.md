@@ -72,4 +72,4 @@ The tests to be done are the following:
 5. Client shutdown (after (4), let the client succesfully close the connection and the server log the closing)
 6. Server shutdown (after (5), let the server succesfully stop, after recording the order of shutdown).
 
-The **autorun.sh** script runs test cases 1, 2, and 3.
+The **autorun.sh** script only boots the server, client 1, and client 2. The other test cases must be run by the user.
