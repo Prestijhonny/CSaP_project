@@ -2,7 +2,7 @@
 
 ## Project description
 
-The goal of this project is to implement a "log server" – a server that logs inputs received from clients into a log file. The client and server executables are designed to be configurable through command-line options, with default values stored in a configuration file for flexibility.
+The goal of this project is to implement a "log server" – a server that logs data received from clients into a log file. The client and server executables are designed to be configurable through command-line options, with default values stored in a configuration file for flexibility.
 
 ## Client executable
 
