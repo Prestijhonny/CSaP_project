@@ -28,15 +28,15 @@ This is the tree structure of file system:
 │   └── src
 │       ├── client
 │       └── client.c
-├── config
-│   ├── config_client
-│   └── config_server
 ├── server
 │   ├── include
 │   │   └── server.h
 │   └── src
 │       ├── server
 │       └── server.c
+├── config
+│   ├── config_client
+│   └── config_server
 ├── autorun.sh
 ├── README.md
 ├── Makefile
