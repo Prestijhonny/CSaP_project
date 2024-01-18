@@ -7,7 +7,7 @@ The goal of this project is to implement a "log server" – a server that logs d
 
 Before compiling and running the server and client, ensure that your system meets the following requirements:
 - **Operating System:** Ubuntu 22.04.1.
-  - Verify you OS's version using the following command:
+  - Verify the correct OS's version using the following command:
 
   
     <pre>uname -a </pre> 
