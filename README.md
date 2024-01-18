@@ -17,7 +17,7 @@ The main functions of the program are the following:
 - **Client** can send messages to server by a stateful connection
 
 # Structure of project's files
-The two executable will be saved in **client/src** and **server/src** path.
+The two executable will be saved in **client/src** and **server/src** path, as i shown below.
 
 This is the tree structure of file system:
 
