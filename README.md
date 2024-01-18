@@ -43,7 +43,7 @@ This is the tree structure of file system:
 │   └── input2
 ├── README.md
 ├── Makefile
-└──Report.pdf</pre>
+└── Report.pdf</pre>
 
 # Compilation and execution
 
