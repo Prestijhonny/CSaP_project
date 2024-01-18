@@ -6,7 +6,7 @@ The goal of this project is to implement a "log server" – a server that logs d
 # System requirements
 
 Before compiling and running the server and client, ensure that your system meets the following requirements:
-- **Operating System:** Ubuntu 22.04.1 operative system.
+- **Operating System:** Ubuntu 22.04.1.
   - Verify you OS's version using the following command:
 
   
