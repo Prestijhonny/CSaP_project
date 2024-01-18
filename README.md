@@ -20,6 +20,7 @@ Before compiling and running the server and client, ensure that your system meet
 # Features
 The main functions of the program are the following:
 - **Server** booting and listening in a default or specified port
+- **Server** records the events that happens
 - **Client** can send messages to server by a stateful connection
 
 # Structure of project's files
