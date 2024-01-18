@@ -15,7 +15,7 @@ Before compiling and running the log server and client, ensure that your system 
 The main functions of the program are the following:
 - **Server** booting and listening in a default or specified port
 - **Client** can send messages to server by a stateful connection
-- **Server**
+  
 # Compilation and execution
 
 The `autorun.sh` script compile and run the server and client. It handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It boots the server and two clients with default configuration. 
