@@ -19,13 +19,14 @@ int sockfd;
 
 void handler(int signalNum);
 
-
-// Handler for SIGINT signal
+// Handler for SIGINT handling ctrl+c and SIGUSR1 handling ctrl+d signal
 void handler(int signo){
     // I use this "if" to make this printf to be used only by the parent process 
     if (PPID == getpid()){
         if(signo == SIGINT)
             printf("\nSIGINT signal received, shutdown and close socket\n");
+        else if (signo == SIGUSR1)
+            printf("\nShutdown and close socket...\n");
         // Wait until the child process dies
         wait(NULL);
     }

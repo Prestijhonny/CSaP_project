@@ -92,7 +92,7 @@ int main (int argc, char *argv[])
     printf("------------------------------------------------------------\n");
     printf("Successfully connected to server at %s",timeString);
     printf("------------------------------------------------------------\n");
-    // Register a signal SIGINT (CTRL+c when pressed on cmd)
+    // Register a signal SIGINT (CTRL+C when pressed on cmd) and SIGUSR1 (CTRL+D when pressed on cmd) 
     signal(SIGINT, handler);
     signal(SIGUSR1, handler);
     pid_t pid = fork();
@@ -121,30 +121,37 @@ int main (int argc, char *argv[])
 
             memset(data, 0, sizeof(data));
         }
-        /*
-        printf("CTRL+d pressed, read OEF from stdin");
-        kill(PPID, SIGUSR1);*/
+        printf("\n\nCTRL+d pressed, read OEF from stdin\n");
+        kill(0, SIGUSR1);
     }else if (pid > 0){
         // Parent process
         // Wait until server is disconnected
         ssize_t bytesRead = recv(sockfd, NULL, 0, MSG_PEEK);
         
-        if (bytesRead == 0){
-            printf("\nThe server has disconnected\n");
-            // Send SIGINT signal to child process
-            kill(pid, SIGINT);
-            wait(NULL);
-        }
+        if (bytesRead == 0) 
+            printf("\n\nThe server has disconnected\n");
+        else if (bytesRead == -1)
+            printf("\nError in recv\n");
+
+        // Send SIGINT signal to child process and waits the termination of child to terminate also the parent process
+        // I could just send kill to every related processes (kill(0,SIGINT)) but i want to avoid to print the message in the handler about SIGINT
+        kill(pid, SIGINT);
+        wait(NULL);
+
+        // Shutdown and close the socket
+        shutdown(sockfd, SHUT_RDWR); 
+        close(sockfd); 
+        printf("\nShutdown and close socket...\n");
+        // Exit with appropriate status
+        if (bytesRead == 0) 
+            exit(EXIT_SUCCESS);
+        else if (bytesRead == -1)
+            exit(EXIT_FAILURE);
+
     }else{
         printf("Error creating child process\n");
         shutdown(sockfd, SHUT_RDWR);
         close(sockfd);
         exit(EXIT_SUCCESS);
     }
-    
-    if (PPID == pid)
-        printf("\nShutdown and close socket...\n");
-    shutdown(sockfd,SHUT_RDWR); 
-    close(sockfd); 
-    exit(EXIT_SUCCESS);
 }

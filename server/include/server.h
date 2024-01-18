@@ -18,7 +18,12 @@
 #define CONFIG_PATH "../../config/config_server"
 #define LOGFILE_THRESHOLD 1000
 #define MAX_PATH 1024
+#define MAX_PATH_2 2048
+#define CLIENTADDR_PORT 64
 #define NUM_LOGFILES 4
+
+// Some global variables that are used in two files server.h and server.c
+// I use these because of the functions need it
 
 sem_t sem;
 int sockfd, clientSocket;
@@ -38,6 +43,7 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient);
 int countNumberOfCharacters(char path[]);
 FILE * getFileDescriptor(int sizeOfMessage);
 
+// Function used to clean up and exit
 void cleanupAndExit() {
     sem_close(&sem);
     sem_destroy(&sem);
@@ -45,6 +51,8 @@ void cleanupAndExit() {
     close(clientSocket);
 }
 
+// This function is used to get the file descriptor of the logfile in which the child process will write in
+// It includes the logfile rotation and every check it needs
 FILE * getFileDescriptor(int sizeOfMessage)
 {
     // Count the number of files in the log directory
@@ -53,7 +61,6 @@ FILE * getFileDescriptor(int sizeOfMessage)
 
     // Use pathToNewFile as a placeholder for the path to the file without modifying LOGPATH
     strcpy(pathToNewFile, LOGPATH);
-
     // If there are zero files, create the first one
     if (numFiles == 0) {
         createNewFilename(pathToNewFile);
@@ -65,7 +72,7 @@ FILE * getFileDescriptor(int sizeOfMessage)
         // Count the number of characters in the last modified file
         int numberOfCharacters = countNumberOfCharacters(pathToNewFile);
 
-        // If the number of characters written on the logfile and the size of the message exceed LOGFILE_THRESHOLD
+        // If the number of characters written on the logfile plus the size of the message exceed LOGFILE_THRESHOLD then write on new logfile
         if ((numberOfCharacters + sizeOfMessage) >= LOGFILE_THRESHOLD) {
             // If the number of files reached the maximum number of log files, delete the oldest logfile
             if (numFiles == NUM_LOGFILES) {
@@ -97,6 +104,7 @@ FILE * getFileDescriptor(int sizeOfMessage)
     return lf;
 }
 
+// This function just write the server shutdown on the logfile by the parent process
 void registerServerShutdown()
 {
     char shutdownServer[64] = "The server is shutting down at " ;
@@ -114,8 +122,10 @@ void registerServerShutdown()
     sem_post(&sem);
 }
 
+// This function create a new filename for a new logfile
 void createNewFilename(char path[])
 {
+    // Obtain time in a specific format
     time_t rawtime;
     struct tm *timeinfo;
     char nameFile[MAX_PATH];
@@ -126,8 +136,10 @@ void createNewFilename(char path[])
     strcat(path, "/");
     strcat(path, LOG);
     strcat(path, nameFile);
+    
 }
 
+// It will delete the least recently file when the logfile threshold is reaced
 int deleteLeastRecentlyFile(char *directory_path)
 {
     DIR *dir = opendir(directory_path);
@@ -148,7 +160,7 @@ int deleteLeastRecentlyFile(char *directory_path)
     {
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
         {
-
+            // Fill the file path by the dir path and name of the file found
             memset(file_path, 0, sizeof(file_path));
             strcpy(file_path, directory_path);
             strcat(file_path, "/");
@@ -161,7 +173,7 @@ int deleteLeastRecentlyFile(char *directory_path)
                 if (file_stat.st_mtime < lessRecently)
                 {
                     lessRecently = file_stat.st_mtime;
-                    // Clean and fill the string
+                   
                     memset(lessRecentlyFile, 0, sizeof(lessRecentlyFile));
                     strcpy(lessRecentlyFile, file_path);
                 }
@@ -211,7 +223,9 @@ void findLastModifiedFile(char *path)
             strcat(file_path, "/");
             strcat(file_path, entry->d_name);
 
+            // stat is needed for retrieve file information and if it returns 0, it means that it succeed
             if (stat(file_path, &fileStat) == 0){
+                // Get time of last modification of file and compare it to latestModTime
                 if (fileStat.st_mtime > latestModTime){
                     latestModTime = fileStat.st_mtime;
                     memset(latestModFileName, 0, sizeof(latestModFileName));
@@ -233,8 +247,7 @@ void findLastModifiedFile(char *path)
     closedir(dir);
 }
 
-// This handler manage SIGINT signal (CTRL+c pressed) and SIGUSR1 signal is sent when a child processes cannot delete
-// the oldest file in the log directory
+// This handler manage SIGINT signal (CTRL+c pressed)
 void handler(int signo) {
     pid_t currentPid = getpid();
 
@@ -245,10 +258,7 @@ void handler(int signo) {
         if (filDes >= 0 && (fcntl(filDes, F_GETFL) & O_APPEND))
             fclose(logFile);
         sem_post(&sem);
-        sem_close(&sem);
-        sem_destroy(&sem);
-        shutdown(clientSocket, SHUT_RDWR);
-        close(clientSocket);
+        cleanupAndExit();
         exit(EXIT_SUCCESS);
     }else{
         // Parent process
@@ -256,14 +266,14 @@ void handler(int signo) {
             printf("\nSIGINT signal received, shutdown and close socket for all processes\n");
 
         registerServerShutdown();
-
+        // Clean everything
         sem_post(&sem);
         sem_close(&sem);
         sem_destroy(&sem);
         shutdown(sockfd, SHUT_RDWR);
         close(sockfd);
 
-        // Wait until there aren't more child processes
+        // Wait until there aren't more child processes alive
         while (wait(NULL) != -1);
 
         exit(EXIT_SUCCESS);
@@ -291,13 +301,14 @@ int readConfFile(int *PORT)
     return 0;
 }
 
+// It creates default or custom dir if it doesn't exist 
 int createDir()
 {
     // If LOGPATH does not exists then create it
     struct stat st;
     if (stat(LOGPATH, &st) == -1)
     {
-        if (mkdir(LOGPATH, 777) == -1)
+        if (mkdir(LOGPATH, 0777 ) == -1)
         {
             printf("Error to create a dir");
             return -1;
@@ -307,6 +318,7 @@ int createDir()
     return 0;
 }
 
+// It counts the number of files in a dir
 int countFilesInDirectory(char *path)
 {
     DIR *dir;
@@ -338,6 +350,7 @@ int countFilesInDirectory(char *path)
     return count;
 }
 
+// It counts the number of characters in a logfile
 int countNumberOfCharacters(char path[])
 {
     FILE *fp = fopen(path, "r");
@@ -356,24 +369,37 @@ int countNumberOfCharacters(char path[])
     return numberOfCharaters;
 }
 
+// This is the function to handle the client connection
 int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
-{
-    char outMessage[2048];
+{  
+    // This is the message that will be written on the logfile 
+    char outMessage[MAX_PATH_2];
+    // The string to obtain the time
     char *timeString;
-    char logAddress[64];
+    // This string will contains the client address and the port from which the client connect from ( this is the format CLIENT_ADDR:PORT ) 
+    char logAddress[CLIENTADDR_PORT];
+    // This string will contains the string format of intPortOfClient
     char portClient[16];
+    // This is the message received from the client
     char message[MAX_PATH];
     ssize_t bytesReceived;
 
     while (TRUE)
     {
+        // Clean the message that will be written on the logfile
         memset(outMessage, 0, sizeof(outMessage));
+
+        // ----------------------------
         // Get current time
         time_t currentTime;
         time(&currentTime);
         // Convert time to string representation
         timeString = ctime(&currentTime);
         strcpy(outMessage, timeString);
+        // ----------------------------
+
+        // Copy the client addr and port
+        // ----------------------------
         strcpy(logAddress, "Client address: ");
         strcat(logAddress, clientAddr);
         strcat(logAddress, ":");
@@ -383,12 +409,17 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 
         strcat(logAddress, portClient);
         strcat(outMessage, logAddress);
+        // ----------------------------
+
+        // Copy the message from client
+        // ----------------------------
         strcat(outMessage, "\n");
         strcat(outMessage, "Client message: ");
         // Clean message string before using it
         memset(message, 0, sizeof(message));
         // Number of bytes received from client socket and store it in message string
         bytesReceived = recv(clientSocket, message, sizeof(message), 0);
+
         // Handling recv error
         if (bytesReceived == -1){
             printf("Error to receive data from socket\n");
@@ -399,6 +430,7 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
             sem_wait(&sem);
             char disconnectedClient[MAX_PATH];
             snprintf(disconnectedClient,sizeof(disconnectedClient), "The client %s:%s has disconnected\n", clientAddr, portClient);
+            // Write on log file that the client has disconnected
             logFile = getFileDescriptor(strlen(disconnectedClient));
             write(fileno(logFile),disconnectedClient,strlen(disconnectedClient));
             fclose(logFile);
@@ -409,12 +441,15 @@ int handleClientConn(int clientSocket, char clientAddr[], int intPortOfClient)
 
         strcat(outMessage, message);
         strcat(outMessage, "\n");
+        // ----------------------------
 
+        // Finally write the message with timestamp, client address, port, etc... on the logfile
+        // ----------------------------
         sem_wait(&sem);
-        // I use this feature via semaphore, so i'm sure processes access the file one at a time
         logFile = getFileDescriptor(strlen(outMessage));
         write(fileno(logFile), outMessage, strlen(outMessage));
         fclose(logFile);
         sem_post(&sem);
+        // ----------------------------
     }
 }

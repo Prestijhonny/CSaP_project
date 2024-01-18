@@ -19,16 +19,18 @@ int main(int argc, char *argv[])
         // Read default values from config server file
         if (readConfFile(&PORT) < 0)
             exit(EXIT_FAILURE);
-        
+        // Create the default dir if it doesn't exists
+        if (createDir() < 0)
+            exit(EXIT_FAILURE);
     }
     else if (argc == 3) // Values passed from command line
     {
         PORT = atoi(argv[1]);
         strcpy(LOGPATH, "../../");
         strcat(LOGPATH, argv[2]);
-        printf("Listening port: %d\n", PORT);
         if (createDir() < 0)
             exit(EXIT_FAILURE);
+        printf("Listening port: %d\n", PORT);
         printf("Log file path: %s\n", LOGPATH);
     }
     else if (argc == 2)
@@ -86,7 +88,7 @@ int main(int argc, char *argv[])
     printf("\nDate and time: %s\n",timeString);
     
 
-    // Unamed semaphore
+    // Init unamed semaphore
     if (sem_init(&sem,0,1)  == -1){
         printf("Error initializing semaphore\n");
         shutdown(sockfd, SHUT_RDWR);
@@ -111,33 +113,30 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
             
-           
-
             pid_t pid = fork();
 
             if (pid == -1)
-            {
-                printf("Error creating child process\n");
-                shutdown(clientSocket, SHUT_RDWR);
-                close(clientSocket);
-                exit(EXIT_FAILURE);
-            }
+                printf("Error creating child process to manage client\n");
             else if (pid == 0)
             {
                 // Child process
                 // Close the socket created by server to save resources
                 close(sockfd);
                 int intPortOfClient = ntohs(client_addr.sin_port);
+
                 printf("A client has connected, accepted connection from %s:%d\n\n", clientAddr, intPortOfClient);
 
                 char acceptedClient[128];
                 memset(acceptedClient, 0, sizeof(acceptedClient));
                 snprintf(acceptedClient, sizeof(acceptedClient), "A client has connected, accepted connection from %s:%d\n\n", clientAddr, intPortOfClient);
                 sem_wait(&sem);
+                // Write on log file that the client has connected
                 FILE *fp = getFileDescriptor(strlen(acceptedClient));
                 write(fileno(fp),acceptedClient,strlen(acceptedClient));
                 fclose(fp);
                 sem_post(&sem);
+
+                // Function to handle the client connection
                 int value = handleClientConn(clientSocket, clientAddr, intPortOfClient);
 
                 // Release, close, and destroy the semaphore
@@ -150,6 +149,7 @@ int main(int argc, char *argv[])
                 close(clientSocket);
 
                 // Check the return value and take appropriate action
+                // The recv handling cases
                 if (value < 0) {
                     printf("Cleaning everything and close connection...\n\n");
                     exit(EXIT_FAILURE);
