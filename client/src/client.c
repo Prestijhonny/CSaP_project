@@ -10,9 +10,9 @@ int main (int argc, char *argv[])
     char SERVER_ADDR[INET_ADDRSTRLEN];
     char HOSTNAME[MAX_HOSTNAME];
     struct hostent *host;
-    // Get parent process pid
+    // Get parent process pid for using in the SIGINT handler
     PPID = getpid();
-    // Default values for server address and port
+    // This means that the client will read default conf as server address and port
     if (argc == 1){
         FILE *fp = fopen("../../config/config_client", "r");
         if (fp == NULL){
@@ -28,7 +28,7 @@ int main (int argc, char *argv[])
             }
         }
         fclose(fp);
-    // Values passed from command line
+    // The case where the conf are passed by the command-line
     }else if (argc == 3){
         strcpy(HOSTNAME, argv[1]);
         PORT = atoi(argv[2]);
@@ -37,8 +37,9 @@ int main (int argc, char *argv[])
             printf("Error to resolve hostname\n");
             exit(EXIT_FAILURE);
         }
+        // I'm copying the IP address from the first element of list handled by "struct hostent *host" variable
         server.sin_addr = *((struct in_addr *)host->h_addr_list[0]);
-        // inet_ntop() converts IP address to textual format  
+        // inet_ntop() converts the binary IP address in server.sin_addr to a human-readable string format
         if (inet_ntop(AF_INET, &server.sin_addr, SERVER_ADDR, sizeof(SERVER_ADDR)) == NULL) {
             printf("inet_ntop() failed");
             exit(EXIT_FAILURE);
@@ -67,6 +68,7 @@ int main (int argc, char *argv[])
 
     int opt = 1;
     // Setup some options for current socket, SO_REUSEADDR is an option that permit to reuse immediately a local address, although it is still used by another socket
+    // SOL_SOCKET indicates the level argument specifies the protocol level at which the option resides
     if ((setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR,(char *)&opt, sizeof(opt))) == -1){
         printf("Error to setup options to socket\n");
         shutdown(sockfd,SHUT_RDWR); 
@@ -94,21 +96,24 @@ int main (int argc, char *argv[])
     signal(SIGINT, int_handler);
     
     pid_t pid = fork();
-
+    // I created two process in client for these reasons:
+    // 1) Child process manages the messages sent to server: it uses fgets and send to send data to server 
+    // 2) Parent process is listening on socket in MSG_PEEK mode by recv. This means it only waits for server disconnection, that is, when the recv returns 0
+    char data[MAX_DATA];
     if (pid == 0){
         // Child process
-        // While loop until read EOF on stdin
-        char data[MAX_DATA];
+        // Flush the string 
         memset(data, 0, sizeof(data));
-        // Get data from stdin
         printf("Send some data (press CTRL+D or type exit to quit): ");
-        
+        // While loop until read EOF on stdin
+        // Get data from stdin
         while (fgets(data, sizeof(data), stdin) != NULL) {
             printf("Send some data (press CTRL+D or type exit to quit): ");
 
             // Send data to server 
             if (send(sockfd,data,strlen(data),0) == -1){
                 printf("Error to send data\n");
+                kill(PPID, SIGINT);
                 shutdown(sockfd,SHUT_RDWR); 
                 close(sockfd);
                 exit(EXIT_FAILURE);
@@ -118,13 +123,13 @@ int main (int argc, char *argv[])
         }
     }else if (pid > 0){
         // Parent process
+        // Wait until server is disconnected
         ssize_t bytesRead = recv(sockfd, NULL, 0, MSG_PEEK);
-
+        
         if (bytesRead == 0){
             printf("\nThe server has disconnected\n");
             // Send SIGINT signal to child process
             kill(pid, SIGINT);
-            // Wait until the child process dies
             wait(NULL);
         }
     }else{
@@ -133,7 +138,6 @@ int main (int argc, char *argv[])
         close(sockfd);
         exit(EXIT_SUCCESS);
     }
-    
 
     printf("\nShutdown and close socket...\n");
     shutdown(sockfd,SHUT_RDWR); 

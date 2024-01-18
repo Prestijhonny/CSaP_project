@@ -3,6 +3,8 @@
         "cmath": "c",
         "server.h": "c",
         "dirent.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c"
     }
 }
