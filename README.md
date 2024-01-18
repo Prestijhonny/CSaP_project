@@ -42,7 +42,8 @@ This is the tree structure of file system:
 │   ├── input1
 │   └── input2
 ├── README.md
-└── Makefile</pre>
+├── Makefile
+└──Report.pdf</pre>
 
 # Compilation and execution
 
