@@ -8,11 +8,13 @@ The goal of this project is to implement a "log server" – a server that logs d
 Before compiling and running the server and client, ensure that your system meets the following requirements:
 - **Operating System:** Ubuntu 22.04.1 operative system.
   - Verify you OS's version using the following command:
+
   
-  <pre>uname -a </pre> 
+    <pre>uname -a </pre> 
 - **Compiler:** GCC (GNU Compiler Collection) version 11.4.0.
   - Verify your GCC version using the following command:
-    
+
+
     <pre>gcc --version</pre>
   - If GCC is not installed or an older version is present, download and install the latest version from the [official GCC website](https://gcc.gnu.org/).
 # Features
