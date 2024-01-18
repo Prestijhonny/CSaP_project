@@ -44,6 +44,7 @@ This is the tree structure of file system:
 ├── config
 │   ├── config_client
 │   └── config_server
+├── log  
 ├── autorun.sh
 ├── README.md
 ├── Makefile
