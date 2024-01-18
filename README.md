@@ -5,7 +5,7 @@ The goal of this project is to implement a "log server" – a server that logs d
 
 # System requirements
 
-Before compiling and running the log server and client, ensure that your system meets the following requirements:
+Before compiling and running the server and client, ensure that your system meets the following requirements:
 - **Operating System:** Ubuntu 22.04.1 operative system.
 - **Compiler:** GCC (GNU Compiler Collection) version 11.4.0.
   - Verify your GCC version using the following command:
