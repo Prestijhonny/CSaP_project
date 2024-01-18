@@ -9,12 +9,12 @@ CBIN_DIR = client/src
 all: clean server client
 
 server: server/src/server.c FORCE
-	$(CC) $< -o $(SBIN_DIR)/$@
+	$(CC) $< -o ../$@
 
 client: client/src/client.c FORCE
-	$(CC) $< -o $(CBIN_DIR)/$@
+	$(CC) $< -o ../$@
 
 clean:
-	rm -f $(SBIN_DIR)/server $(CBIN_DIR)/client
+	rm -f ../server ../client
 
 FORCE:
