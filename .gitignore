@@ -3,3 +3,7 @@
 *.json
 client/src/client
 server/src/server
+client/client
+client/src/client
+server/server
+server/src/server

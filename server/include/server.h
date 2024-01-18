@@ -77,7 +77,7 @@ FILE * getFileDescriptor(int sizeOfMessage)
             // If the number of files reached the maximum number of log files, delete the oldest logfile
             if (numFiles == NUM_LOGFILES) {
                 // Delete the least recently used file
-                if (deleteLeastRecentlyFile(LOGPATH) == -1) {
+                if (deleteLeastRecentlyFile(LOGPATH) < 0) {
                     printf("Error deleting the least recently used file. The client will be kicked out. "
                            "Try to restart the server or delete the file manually.\n");
                     sem_post(&sem);
@@ -191,7 +191,8 @@ int deleteLeastRecentlyFile(char *directory_path)
         closedir(dir); 
         return -1;
     }
-    closedir(dir); 
+    closedir(dir);
+    return 0;
 }
 
 // Function to find last modified log file
@@ -202,7 +203,6 @@ void findLastModifiedFile(char *path)
     struct stat fileStat;
     time_t latestModTime = 0;
     char latestModFileName[MAX_PATH];
-    int nFile = 0;
 
     if ((dir = opendir(path)) == NULL)
     {

@@ -3,18 +3,21 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-SBIN_DIR = server/src
-CBIN_DIR = client/src
+SERVER_SRC_DIR = server/src
+CLIENT_SRC_DIR = client/src
 
-all: clean server client
+SERVER_BIN = server/server
+CLIENT_BIN = client/client
 
-server: server/src/server.c FORCE
-	$(CC) $< -o ../$@
+all: server client
 
-client: client/src/client.c FORCE
-	$(CC) $< -o ../$@
+server: $(SERVER_SRC_DIR)/server.c FORCE
+	$(CC) $(CFLAGS) $< -o $(SERVER_BIN)
+
+client: $(CLIENT_SRC_DIR)/client.c FORCE
+	$(CC) $(CFLAGS) $< -o $(CLIENT_BIN)
 
 clean:
-	rm -f ../server ../client
+	rm -f $(SERVER_BIN) $(CLIENT_BIN)
 
 FORCE:
