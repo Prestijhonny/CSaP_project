@@ -19,7 +19,7 @@ The main functions of the program are the following:
 # Structure of project's files
 CSaP_project
 
-CSaP_project
+`CSaP_project
 ├── client
 │   ├── include
 │   │   └── client.h
@@ -40,7 +40,7 @@ CSaP_project
 │   ├── input1
 │   └── input2
 ├── README.md
-└── Makefile
+└── Makefile`
 
 # Compilation and execution
 
