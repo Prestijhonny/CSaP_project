@@ -17,14 +17,15 @@
 pid_t PPID;
 int sockfd;
 
-void int_handler(int signalNum);
+void handler(int signalNum);
 
 
 // Handler for SIGINT signal
-void int_handler(int signo){
+void handler(int signo){
     // I use this "if" to make this printf to be used only by the parent process 
     if (PPID == getpid()){
-        printf("\nSIGINT signal received, shutdown and close socket\n");
+        if(signo == SIGINT)
+            printf("\nSIGINT signal received, shutdown and close socket\n");
         // Wait until the child process dies
         wait(NULL);
     }

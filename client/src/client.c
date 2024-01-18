@@ -93,8 +93,8 @@ int main (int argc, char *argv[])
     printf("Successfully connected to server at %s",timeString);
     printf("------------------------------------------------------------\n");
     // Register a signal SIGINT (CTRL+c when pressed on cmd)
-    signal(SIGINT, int_handler);
-    
+    signal(SIGINT, handler);
+    signal(SIGUSR1, handler);
     pid_t pid = fork();
     // I created two process in client for these reasons:
     // 1) Child process manages the messages sent to server: it uses fgets and send to send data to server 
@@ -121,6 +121,9 @@ int main (int argc, char *argv[])
 
             memset(data, 0, sizeof(data));
         }
+        /*
+        printf("CTRL+d pressed, read OEF from stdin");
+        kill(PPID, SIGUSR1);*/
     }else if (pid > 0){
         // Parent process
         // Wait until server is disconnected
@@ -138,8 +141,9 @@ int main (int argc, char *argv[])
         close(sockfd);
         exit(EXIT_SUCCESS);
     }
-
-    printf("\nShutdown and close socket...\n");
+    
+    if (PPID == pid)
+        printf("\nShutdown and close socket...\n");
     shutdown(sockfd,SHUT_RDWR); 
     close(sockfd); 
     exit(EXIT_SUCCESS);
