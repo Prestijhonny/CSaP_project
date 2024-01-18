@@ -15,7 +15,33 @@ Before compiling and running the log server and client, ensure that your system 
 The main functions of the program are the following:
 - **Server** booting and listening in a default or specified port
 - **Client** can send messages to server by a stateful connection
-  
+
+# Structure of project's files
+CSaP_project
+
+CSaP_project
+├── client
+│   ├── include
+│   │   └── client.h
+│   └── src
+│       ├── client
+│       └── client.c
+├── config
+│   ├── config_client
+│   └── config_server
+├── server
+│   ├── include
+│   │   └── server.h
+│   └── src
+│       ├── server
+│       └── server.c
+├── startup
+│   ├── autorun.sh
+│   ├── input1
+│   └── input2
+├── README.md
+└── Makefile
+
 # Compilation and execution
 
 The `autorun.sh` script compile and run the server and client. It handles compilation, server execution and client execution, ensuring a smooth and efficient workflow. It boots the server and two clients with default configuration. 
