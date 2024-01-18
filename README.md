@@ -24,9 +24,8 @@ The main functions of the program are the following:
 - **Client** can send messages to server by a stateful connection
 
 # Structure of project's files
-The two executable will be saved in **client/src** and **server/src** path, as shown below.
-
-This is an example where the server has started by default conf. This is a tree structure of project's files:
+This is an example where the server has started by default conf. Furthermore the two executables (client and server) will be saved in **client/src** and **server/src** paths.
+This is a tree representation of project's files:
 
 <pre>CSaP_project
 ├── client
