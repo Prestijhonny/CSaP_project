@@ -37,10 +37,7 @@ This is the tree structure of file system:
 │   └── src
 │       ├── server
 │       └── server.c
-├── startup
-│   ├── autorun.sh
-│   ├── input1
-│   └── input2
+├── autorun.sh
 ├── README.md
 ├── Makefile
 └── Report.pdf</pre>
@@ -51,4 +48,4 @@ The `autorun.sh` script compile and run the server and client. It handles compil
 
 <pre>./autorun.sh</pre>
 
-More specifically, it starts three terminals where one of them is the server and the other two are the client.
+More specifically, it starts three terminals where one of them is the server and the other two are the client that automatically connects to server.
