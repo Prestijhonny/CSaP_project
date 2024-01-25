@@ -66,16 +66,6 @@ int main (int argc, char *argv[])
     server.sin_family = AF_INET;
     server.sin_port = htons(PORT);
 
-    int opt = 1;
-    // Setup some options for current socket, SO_REUSEADDR is an option that permit to reuse immediately a local address, although it is still used by another socket
-    // SOL_SOCKET indicates the level argument specifies the protocol level at which the option resides
-    if ((setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR,(char *)&opt, sizeof(opt))) == -1){
-        printf("Error to setup options to socket\n");
-        shutdown(sockfd,SHUT_RDWR); 
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
     int status;
     // Connect client to server
     if ((status = connect(sockfd, (struct sockaddr*)&server, sizeof(server))) < 0) {
